@@ -7,48 +7,123 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  password          String
+  role              Role      @default(USER)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  isVerified        Boolean   @default(false)
+  verifyToken       String?
+  verifyTokenExpiry DateTime?
+  refreshToken      String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
 
-  superAdmin  SuperAdmin?
-  admin       Admin?
-  careManager CareManager?
+  profile         Profile?
+  hostedEvents    Event[]        @relation("HostedEvents")
+  joinedEvents    Participant[]
+  notifications   Notification[]
+  reviewsMade     Review[]       @relation("Reviewer")
+  reviewsReceived Review[]       @relation("HostReviews")
+  Waitlist        Waitlist[]
 
   @@map("users")
 }
 
-model SuperAdmin {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  type      String // e.g., "EVENT_JOIN", "EVENT_REMINDER"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  @@map("super_admins")
+  @@map("notifications")
 }
 
-model Admin {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
+model Profile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  profileImage String?
+  bio          String?
+  interests    String[]
+  location     String?
 
-  @@map("admins")
+  @@map("profiles")
 }
 
-model CareManager {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
+model Event {
+  id              String        @id @default(uuid())
+  name            String
+  type            String
+  dateTime        DateTime
+  location        String
+  minParticipants Int
+  maxParticipants Int
+  description     String
+  image           String?
+  joiningFee      Float         @default(0)
+  status          EventStatus   @default(OPEN)
+  hostId          String
+  host            User          @relation("HostedEvents", fields: [hostId], references: [id])
+  participants    Participant[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  cancelledAt     DateTime?
+  Waitlist        Waitlist[]
 
-  @@map("care_managers")
+  @@map("events")
+}
+
+model Waitlist {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+  @@map("waitlists")
+}
+
+model Participant {
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  eventId  String
+  event    Event    @relation(fields: [eventId], references: [id])
+  joinedAt DateTime @default(now())
+
+  @@id([userId, eventId])
+  @@map("participants")
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  reviewerId String
+  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id])
+  hostId     String
+  host       User     @relation("HostReviews", fields: [hostId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  @@map("reviews")
 }
 
 enum Role {
   USER
+  HOST
   ADMIN
-  SUPER_ADMIN
-  CARE_MANAGER
+}
+
+enum EventStatus {
+  OPEN
+  FULL
+  CANCELLED
+  COMPLETED
 }

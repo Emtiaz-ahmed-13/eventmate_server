@@ -15,4 +15,9 @@ export default {
     reset_pass_secret: process.env.JWT_RESET_PASS_TOKEN,
     reset_pass_token_expires_in: process.env.JWT_RESET_PASS_TOKEN_EXPIRES_IN,
   },
+  imagekit: {
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+  },
 };
