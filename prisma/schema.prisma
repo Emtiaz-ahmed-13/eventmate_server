@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  superAdmin  SuperAdmin?
+  admin       Admin?
+  careManager CareManager?
+
+  @@map("users")
+}
+
+model SuperAdmin {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("super_admins")
+}
+
+model Admin {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("admins")
+}
+
+model CareManager {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("care_managers")
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  CARE_MANAGER
+}
