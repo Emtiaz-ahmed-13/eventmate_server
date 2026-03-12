@@ -14,9 +14,7 @@ export const findUserByEmail = async (email: string) => {
   const user = await prisma.user.findUnique({
     where: { email },
     include: {
-      superAdmin: { select: { id: true } },
-      admin: { select: { id: true } },
-      careManager: { select: { id: true } },
+      profile: true,
     },
   });
 

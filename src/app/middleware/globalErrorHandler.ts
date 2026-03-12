@@ -6,6 +6,7 @@ const globalErrorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  console.error("DEBUG ERROR:", error);
   res.status(500).json({
     success: false,
     message: error.message || "Something went wrong",
