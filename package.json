@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "start:prod": "node ./dist/server.js",
     "start": "node ./dist/server.js",
     "build": "npx prisma generate && tsc",
@@ -12,7 +12,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "description": "",
   "devDependencies": {
     "@prisma/client": "^7.5.0",
@@ -23,9 +23,10 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^22.10.10",
     "@types/nodemailer": "^7.0.11",
+    "@types/pg": "^8.18.0",
     "prisma": "^7.5.0",
     "ts-node-dev": "^2.0.0",
-    "tsx": "^4.19.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3"
   },
   "dependencies": {
@@ -36,7 +37,7 @@
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "imagekit": "^6.0.0",
