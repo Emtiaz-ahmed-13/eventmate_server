@@ -22,7 +22,7 @@ export const upload = multer({
   },
 });
 
-export const uploadToImageKit = async (file: Express.Multer.File, fileName: string) => {
+export const uploadToImageKit = async (file: Express.Multer.File, fileName: string): Promise<any> => {
   try {
     const response = await imagekit.upload({
       file: file.buffer, // Buffer from memoryStorage
