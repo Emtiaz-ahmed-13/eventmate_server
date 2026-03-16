@@ -75,6 +75,20 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const updateProfileImage = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const file = req.file;
+
+  if (!file) throw new ApiError(400, "No image provided");
+
+  const result = await UserServices.updateProfileImage(user.id, file);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Profile image updated successfully.",
+    data: result,
+  });
+});
 
 export const UserControllers = {
   updateProfile,
@@ -83,4 +97,5 @@ export const UserControllers = {
   getUserEvents,
   getAllUsers,
   deleteUser,
+  updateProfileImage
 };

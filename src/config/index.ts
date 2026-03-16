@@ -20,4 +20,8 @@ export default {
     privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
     urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
   },
+  stripe: {
+    secret_key: process.env.STRIPE_SECRET_KEY,
+    publishable_key: process.env.STRIPE_PUBLISHABLE_KEY,
+  },
 };

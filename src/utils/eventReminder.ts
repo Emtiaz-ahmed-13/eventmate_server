@@ -3,7 +3,7 @@ import prisma from "../app/shared/prisma";
 import { sendEventReminderEmail } from "./sendEmail";
 
 export const startEventReminderCron = () => {
-  cron.schedule("* * * * *", async () => {
+  cron.schedule("0 9 * * *", async () => {
     console.log("Running event reminder cron job...");
 
     const now = new Date();

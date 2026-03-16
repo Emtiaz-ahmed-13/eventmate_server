@@ -2,12 +2,13 @@ import { EventStatus } from "../../../../generated/prisma/client";
 import {
   sendEventCancellationEmail,
   sendWaitlistPromotionEmail,
+  sendApprovalEmail,
+  sendRejectionEmail,
 } from "../../../utils/sendEmail";
 import ApiError from "../../errors/ApiError";
 import prisma from "../../shared/prisma";
 import { NotificationServices } from "../Notification/notification.services";
 
-// ✅ reusable host select — sensitive fields বাদ
 const hostSelect = {
   id: true,
   name: true,
@@ -22,13 +23,9 @@ const hostSelect = {
 const createEvent = async (hostId: string, payload: any) => {
   const { capacity, joiningFee, ...rest } = payload;
 
-  // ✅ verified check
   const host = await prisma.user.findUnique({ where: { id: hostId } });
   if (!host?.isVerified) {
-    throw new ApiError(
-      403,
-      "Please verify your email before creating an event.",
-    );
+    throw new ApiError(403, "Please verify your email before creating an event.");
   }
 
   const result = await prisma.event.create({
@@ -44,8 +41,14 @@ const createEvent = async (hostId: string, payload: any) => {
   return result;
 };
 
+// ✅ Pagination সহ getAllEvents — duplicate নেই
 const getAllEvents = async (filters: any) => {
-  const { searchTerm, type, location } = filters;
+  const { searchTerm, type, location, page, limit } = filters;
+
+  const pageNumber = Number(page) || 1;
+  const limitNumber = Number(limit) || 10;
+  const skip = (pageNumber - 1) * limitNumber;
+
   const andConditions = [];
 
   if (searchTerm) {
@@ -65,27 +68,35 @@ const getAllEvents = async (filters: any) => {
     });
   }
 
-  const whereConditions =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+  const whereConditions = andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.event.findMany({
-    where: whereConditions,
-    include: {
-      host: {
-        select: hostSelect, // ✅ sensitive fields বাদ
-      },
+  const [events, total] = await Promise.all([
+    prisma.event.findMany({
+      where: whereConditions,
+      include: { host: { select: hostSelect } },
+      skip,
+      take: limitNumber,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.event.count({ where: whereConditions }),
+  ]);
+
+  return {
+    events,
+    meta: {
+      total,
+      page: pageNumber,
+      limit: limitNumber,
+      totalPages: Math.ceil(total / limitNumber),
     },
-  });
-  return result;
+  };
 };
 
 const getSingleEvent = async (id: string) => {
   const result = await prisma.event.findUnique({
     where: { id },
     include: {
-      host: {
-        select: hostSelect, // ✅ sensitive fields বাদ
-      },
+      host: { select: hostSelect },
       participants: {
         include: {
           user: {
@@ -115,34 +126,29 @@ const joinEvent = async (userId: string, eventId: string) => {
   if (event.status === EventStatus.CANCELLED)
     throw new ApiError(400, "Event is cancelled");
 
-  // ✅ already joined কিনা check
   const alreadyJoined = await prisma.participant.findUnique({
     where: { userId_eventId: { userId, eventId } },
   });
   if (alreadyJoined) throw new ApiError(400, "You already joined this event");
 
-  // ✅ already waitlisted কিনা check
   const alreadyWaitlisted = await prisma.waitlist.findUnique({
     where: { userId_eventId: { userId, eventId } },
   });
   if (alreadyWaitlisted)
     throw new ApiError(400, "You are already on the waitlist");
 
-  // ✅ event full হলে waitlist এ add করো
   if (event.participants.length >= event.maxParticipants) {
-    await prisma.waitlist.create({
-      data: { userId, eventId },
-    });
-
+    await prisma.waitlist.create({ data: { userId, eventId } });
     return {
       waitlisted: true,
       message: "Event is full. You have been added to the waitlist!",
     };
   }
 
-  // event full না হলে normally join করো
+  const status = event.approvalRequired ? "PENDING" : "APPROVED";
+
   const result = await prisma.participant.create({
-    data: { userId, eventId },
+    data: { userId, eventId, status },
     include: {
       user: {
         select: {
@@ -155,9 +161,7 @@ const joinEvent = async (userId: string, eventId: string) => {
         },
       },
       event: {
-        include: {
-          host: { select: hostSelect },
-        },
+        include: { host: { select: hostSelect } },
       },
     },
   });
@@ -165,10 +169,12 @@ const joinEvent = async (userId: string, eventId: string) => {
   if (result.event.host) {
     await NotificationServices.sendNotification({
       userId: result.event.hostId,
-      message: `${result.user.name} has joined your event: ${result.event.name}`,
+      message: event.approvalRequired
+        ? `${result.user.name} has requested to join: ${result.event.name}`
+        : `${result.user.name} has joined your event: ${result.event.name}`,
       type: "EVENT_JOIN",
       email: result.event.host.email,
-      subject: "New Participant Joined Your Event",
+      subject: event.approvalRequired ? "New Join Request" : "New Participant Joined",
     });
   }
 
@@ -176,11 +182,7 @@ const joinEvent = async (userId: string, eventId: string) => {
 };
 
 const updateEvent = async (id: string, payload: any) => {
-  const result = await prisma.event.update({
-    where: { id },
-    data: payload,
-  });
-  return result;
+  return await prisma.event.update({ where: { id }, data: payload });
 };
 
 const leaveEvent = async (userId: string, eventId: string) => {
@@ -191,12 +193,10 @@ const leaveEvent = async (userId: string, eventId: string) => {
 
   if (!event) throw new ApiError(404, "Event Not Found");
 
-  // participant আছে কিনা check
   const participant = await prisma.participant.findUnique({
     where: { userId_eventId: { userId, eventId } },
   });
 
-  // waitlist এ আছে কিনা check
   const waitlisted = await prisma.waitlist.findUnique({
     where: { userId_eventId: { userId, eventId } },
   });
@@ -204,7 +204,6 @@ const leaveEvent = async (userId: string, eventId: string) => {
   if (!participant && !waitlisted)
     throw new ApiError(400, "You are not in this event or waitlist");
 
-  // waitlist থেকে remove করো
   if (waitlisted) {
     await prisma.waitlist.delete({
       where: { userId_eventId: { userId, eventId } },
@@ -212,30 +211,25 @@ const leaveEvent = async (userId: string, eventId: string) => {
     return { message: "Removed from waitlist successfully." };
   }
 
-  // participant remove করো
   await prisma.participant.delete({
     where: { userId_eventId: { userId, eventId } },
   });
 
-  // ✅ waitlist এর 1st user কে promote করো
   const nextInWaitlist = await prisma.waitlist.findFirst({
     where: { eventId },
-    orderBy: { createdAt: "asc" }, // সবচেয়ে আগে add হওয়াজন
+    orderBy: { createdAt: "asc" },
     include: { user: true },
   });
 
   if (nextInWaitlist) {
-    // waitlist থেকে remove করো
     await prisma.waitlist.delete({
       where: { userId_eventId: { userId: nextInWaitlist.userId, eventId } },
     });
 
-    // participant হিসেবে add করো
     await prisma.participant.create({
       data: { userId: nextInWaitlist.userId, eventId },
     });
 
-    // email + notification পাঠাও
     await sendWaitlistPromotionEmail(nextInWaitlist.user.email, event.name);
 
     await NotificationServices.sendNotification({
@@ -251,20 +245,13 @@ const leaveEvent = async (userId: string, eventId: string) => {
 };
 
 const deleteEvent = async (id: string) => {
-  const result = await prisma.event.delete({
-    where: { id },
-  });
-  return result;
+  return await prisma.event.delete({ where: { id } });
 };
 
 const cancelEvent = async (eventId: string, hostId: string) => {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    include: {
-      participants: {
-        include: { user: true },
-      },
-    },
+    include: { participants: { include: { user: true } } },
   });
 
   if (!event) throw new ApiError(404, "Event Not Found");
@@ -275,10 +262,7 @@ const cancelEvent = async (eventId: string, hostId: string) => {
 
   const updatedEvent = await prisma.event.update({
     where: { id: eventId },
-    data: {
-      status: EventStatus.CANCELLED,
-      cancelledAt: new Date(), // ✅
-    },
+    data: { status: EventStatus.CANCELLED, cancelledAt: new Date() },
   });
 
   for (const participant of event.participants) {
@@ -289,7 +273,6 @@ const cancelEvent = async (eventId: string, hostId: string) => {
       email: participant.user.email,
       subject: `Event Cancelled: ${event.name}`,
     });
-
     await sendEventCancellationEmail(participant.user.email, event.name);
   }
 
@@ -297,21 +280,75 @@ const cancelEvent = async (eventId: string, hostId: string) => {
 };
 
 const getEventWaitlist = async (eventId: string) => {
-  const waitlist = await prisma.waitlist.findMany({
+  return await prisma.waitlist.findMany({
     where: { eventId },
     orderBy: { createdAt: "asc" },
     include: {
       user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          profile: true,
-        },
+        select: { id: true, name: true, email: true, profile: true },
       },
     },
   });
-  return waitlist;
+};
+
+const approveParticipant = async (hostId: string, eventId: string, userId: string) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "You are not authorized");
+
+  const participant = await prisma.participant.findUnique({
+    where: { userId_eventId: { userId, eventId } },
+    include: { user: true },
+  });
+
+  if (!participant) throw new ApiError(404, "Participant Not Found");
+  if (participant.status === "APPROVED") throw new ApiError(400, "Already approved");
+
+  await prisma.participant.update({
+    where: { userId_eventId: { userId, eventId } },
+    data: { status: "APPROVED" },
+  });
+
+  await sendApprovalEmail(participant.user.email, event.name);
+
+  await NotificationServices.sendNotification({
+    userId,
+    message: `Your request to join "${event.name}" has been approved!`,
+    type: "EVENT_JOIN",
+    email: participant.user.email,
+    subject: `Approved: ${event.name}`,
+  });
+
+  return { message: "Participant approved successfully." };
+};
+
+const rejectParticipant = async (hostId: string, eventId: string, userId: string) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "You are not authorized");
+
+  const participant = await prisma.participant.findUnique({
+    where: { userId_eventId: { userId, eventId } },
+    include: { user: true },
+  });
+
+  if (!participant) throw new ApiError(404, "Participant Not Found");
+
+  await prisma.participant.delete({
+    where: { userId_eventId: { userId, eventId } },
+  });
+
+  await sendRejectionEmail(participant.user.email, event.name);
+
+  await NotificationServices.sendNotification({
+    userId,
+    message: `Your request to join "${event.name}" has been rejected.`,
+    type: "EVENT_CANCELLED",
+    email: participant.user.email,
+    subject: `Update: ${event.name}`,
+  });
+
+  return { message: "Participant rejected successfully." };
 };
 
 export const EventServices = {
@@ -324,4 +361,6 @@ export const EventServices = {
   deleteEvent,
   cancelEvent,
   getEventWaitlist,
+  approveParticipant,
+  rejectParticipant,
 };

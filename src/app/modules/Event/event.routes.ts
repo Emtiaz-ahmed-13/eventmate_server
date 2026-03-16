@@ -41,5 +41,15 @@ router.get(
   auth(Role.HOST, Role.ADMIN),
   EventControllers.getEventWaitlist,
 );
+router.patch(
+  "/:eventId/participants/:userId/approve",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.approveParticipant
+);
+router.patch(
+  "/:eventId/participants/:userId/reject",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.rejectParticipant
+);
 
 export const EventRoutes = router;

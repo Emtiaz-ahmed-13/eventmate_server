@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -78,6 +79,7 @@ model Event {
   cancelledAt     DateTime?
   Waitlist        Waitlist[]
   savedBy         SavedEvent[]
+   approvalRequired Boolean @default(false)
 
   @@map("events")
 }
@@ -112,7 +114,7 @@ model Participant {
   eventId  String
   event    Event    @relation(fields: [eventId], references: [id])
   joinedAt DateTime @default(now())
-
+  status    ParticipantStatus @default(APPROVED)
   @@id([userId, eventId])
   @@map("participants")
 }
@@ -141,4 +143,9 @@ enum EventStatus {
   FULL
   CANCELLED
   COMPLETED
+}
+enum ParticipantStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

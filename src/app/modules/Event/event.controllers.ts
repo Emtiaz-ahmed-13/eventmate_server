@@ -125,6 +125,32 @@ const getEventWaitlist = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const approveParticipant = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const { eventId, userId } = req.params;
+
+  const result = await EventServices.approveParticipant(host.id, eventId as string, userId as string);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+const rejectParticipant = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const { eventId, userId } = req.params;
+
+  const result = await EventServices.rejectParticipant(host.id, eventId as string, userId as string);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
 
 export const EventControllers = {
   createEvent,
@@ -136,4 +162,6 @@ export const EventControllers = {
   deleteEvent,
   cancelEvent,
   getEventWaitlist,
+  approveParticipant,
+  rejectParticipant
 };

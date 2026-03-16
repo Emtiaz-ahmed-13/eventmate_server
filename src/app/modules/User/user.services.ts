@@ -1,5 +1,6 @@
 import ApiError from "../../errors/ApiError";
 import prisma from "../../shared/prisma";
+import { uploadToImageKit } from "../../shared/uploader";
 
 // ✅ reusable select object — বারবার লিখতে হবে না
 const safeUserSelect = {
@@ -107,6 +108,19 @@ const deleteUser = async (id: string) => {
   });
   return result;
 };
+const updateProfileImage = async (userId: string, file: Express.Multer.File) => {
+  const uploadResponse = await uploadToImageKit(file, `profile_${userId}`);
+  
+  const result = await prisma.profile.upsert({
+    where: { userId },
+    update: { profileImage: uploadResponse.url },
+    create: {
+      userId,
+      profileImage: uploadResponse.url,
+    },
+  });
+  return result;
+};
 
 export const UserServices = {
   updateProfile,
@@ -115,4 +129,5 @@ export const UserServices = {
   getUserEvents,
   getAllUsers,
   deleteUser,
+  updateProfileImage
 };

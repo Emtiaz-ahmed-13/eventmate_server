@@ -92,3 +92,35 @@ export const sendEventReminderEmail = async (
     `,
   });
 };
+
+export const sendApprovalEmail = async (
+  email: string,
+  eventName: string
+) => {
+  await transporter.sendMail({
+    from: `"EventMate" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `You're approved! ${eventName}`,
+    html: `
+      <h2>Great news! 🎉</h2>
+      <p>Your request to join <b>${eventName}</b> has been approved!</p>
+      <p>See you there!</p>
+    `,
+  });
+};
+
+export const sendRejectionEmail = async (
+  email: string,
+  eventName: string
+) => {
+  await transporter.sendMail({
+    from: `"EventMate" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `Update on your request: ${eventName}`,
+    html: `
+      <h2>Sorry!</h2>
+      <p>Your request to join <b>${eventName}</b> has been rejected by the host.</p>
+      <p>Check out other events on EventMate!</p>
+    `,
+  });
+};
