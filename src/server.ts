@@ -20,12 +20,12 @@ async function main() {
   }
 }
 
-// For Vercel serverless
-if (process.env.VERCEL === "1") {
-  // Export the Express app for Vercel
-  export default app;
-} else {
-  // Start server normally for local/Railway
+// Start server normally for local development
+if (process.env.VERCEL !== "1") {
   main();
 }
+
+// Export the Express app for Vercel
+export default app;
+
 
