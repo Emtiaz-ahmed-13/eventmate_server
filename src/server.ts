@@ -3,14 +3,29 @@ import app from "./app";
 import config from "./config";
 import { NotificationServices } from "./app/modules/Notification/notification.services";
 import { startEventReminderCron } from "./utils/eventReminder";
-async function main() {
-  const server: Server = app.listen(config.port, () => {
-    console.log("Sever is running on port ", config.port);
-  });
 
-  // Initialize Socket.io
-  NotificationServices.initSocket(server);
-  startEventReminderCron();
+let server: Server | null = null;
+
+async function main() {
+  if (!server) {
+    server = app.listen(config.port, () => {
+      console.log("Server is running on port ", config.port);
+    });
+
+    // Initialize Socket.io (only in non-serverless environment)
+    if (process.env.VERCEL !== "1") {
+      NotificationServices.initSocket(server);
+      startEventReminderCron();
+    }
+  }
 }
 
-main();
+// For Vercel serverless
+if (process.env.VERCEL === "1") {
+  // Export the Express app for Vercel
+  export default app;
+} else {
+  // Start server normally for local/Railway
+  main();
+}
+
