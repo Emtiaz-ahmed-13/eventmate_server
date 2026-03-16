@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start:prod": "node ./dist/server.js",
-    "start": "node ./dist/server.js",
+    "start:prod": "node dist/server.js",
+    "start": "node dist/server.js",
     "build": "npx prisma generate && tsc",
     "generate": "prisma generate",
     "vercel-build": "npx prisma generate && tsc"
