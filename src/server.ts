@@ -12,20 +12,16 @@ async function main() {
       console.log("Server is running on port ", config.port);
     });
 
-    // Initialize Socket.io (only in non-serverless environment)
-    if (process.env.VERCEL !== "1") {
-      NotificationServices.initSocket(server);
-      startEventReminderCron();
-    }
+    NotificationServices.initSocket(server);
+    startEventReminderCron();
   }
 }
 
-// Start server normally for local development
-if (process.env.VERCEL !== "1") {
+// Only start server in non-Vercel environment
+if (!process.env.VERCEL) {
   main();
 }
 
-// Export the Express app for Vercel
 export default app;
 
 
