@@ -1,5 +1,5 @@
 import { Server } from "http";
-import app from "./app.js";
+import app from "./app.js"; 
 import config from "./config/index.js";
 import { NotificationServices } from "./app/modules/Notification/notification.services.js";
 import { startEventReminderCron } from "./utils/eventReminder.js";
