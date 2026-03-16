@@ -1,9 +1,10 @@
 import express from "express";
+import { AnalyticsRoutes } from "../modules/Analytics/analytics.routes";
 import { AuthRoutes } from "../modules/Auth/auth.routes";
-import { UserRoutes } from "../modules/User/user.routes";
 import { EventRoutes } from "../modules/Event/event.routes";
 import { ReviewRoutes } from "../modules/Review/review.routes";
-import { AnalyticsRoutes } from "../modules/Analytics/analytics.routes";
+import { SavedEventRoutes } from "../modules/SavedEvent/savedEvent.routes";
+import { UserRoutes } from "../modules/User/user.routes";
 
 const router = express.Router();
 
@@ -27,6 +28,10 @@ const moduleRoutes = [
   {
     path: "/analytics",
     route: AnalyticsRoutes,
+  },
+  {
+    path: "/events",
+    route: SavedEventRoutes,
   },
 ];
 

@@ -1,4 +1,4 @@
-import { User } from "@prisma/client";
+import { User } from "../../../../generated/prisma/client";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { Secret } from "jsonwebtoken";
