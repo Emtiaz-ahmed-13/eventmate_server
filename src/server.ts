@@ -2,7 +2,7 @@ import { Server } from "http";
 import app from "./app";
 import config from "./config";
 import { NotificationServices } from "./app/modules/Notification/notification.services";
-
+import { startEventReminderCron } from "./utils/eventReminder";
 async function main() {
   const server: Server = app.listen(config.port, () => {
     console.log("Sever is running on port ", config.port);
@@ -10,6 +10,7 @@ async function main() {
 
   // Initialize Socket.io
   NotificationServices.initSocket(server);
+  startEventReminderCron();
 }
 
 main();

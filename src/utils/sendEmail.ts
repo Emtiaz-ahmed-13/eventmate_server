@@ -72,3 +72,23 @@ export const sendWaitlistPromotionEmail = async (
     `,
   });
 };
+
+export const sendEventReminderEmail = async (
+  email: string,
+  eventName: string,
+  eventDate: Date,
+  location: string
+) => {
+  await transporter.sendMail({
+    from: `"EventMate" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `Reminder: ${eventName} is tomorrow!`,
+    html: `
+      <h2>Event Reminder! 🎉</h2>
+      <p>Just a reminder that <b>${eventName}</b> is tomorrow!</p>
+      <p>📅 Date: <b>${new Date(eventDate).toLocaleDateString()}</b></p>
+      <p>📍 Location: <b>${location}</b></p>
+      <p>See you there!</p>
+    `,
+  });
+};
