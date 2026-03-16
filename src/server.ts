@@ -1,8 +1,8 @@
 import { Server } from "http";
-import app from "./app";
-import config from "./config";
-import { NotificationServices } from "./app/modules/Notification/notification.services";
-import { startEventReminderCron } from "./utils/eventReminder";
+import app from "./app.js";
+import config from "./config/index.js";
+import { NotificationServices } from "./app/modules/Notification/notification.services.js";
+import { startEventReminderCron } from "./utils/eventReminder.js";
 
 let server: Server | null = null;
 

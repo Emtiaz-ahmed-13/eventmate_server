@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
+    "module": "CommonJS",
     "moduleResolution": "node",
     "target": "ES2023",
     "strict": false,
@@ -13,6 +13,6 @@
     "sourceMap": true,
     "outDir": "./dist"
   },
-  "include": ["src/**/*", "api/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "api"]
 }

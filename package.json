@@ -2,11 +2,10 @@
   "name": "eventmate-server",
   "version": "1.0.0",
   "main": "dist/server.js",
-  "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start:prod": "node dist/server.js",
-    "start": "node dist/server.js",
+    "start:prod": "node dist/src/server.js",
+    "start": "node dist/src/server.js",
     "build": "npx prisma generate && tsc && ls -la dist",
     "generate": "prisma generate",
     "vercel-build": "npx prisma generate && tsc"
