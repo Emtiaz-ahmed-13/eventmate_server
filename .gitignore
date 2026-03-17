@@ -5,4 +5,5 @@
 *.log
 prisma
 generated
-.env.production
+.env.production.env.production
+.env*
