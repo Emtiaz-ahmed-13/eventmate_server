@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.get("/me", auth(Role.USER, Role.HOST, Role.ADMIN), UserControllers.getMyProfile);
 router.patch("/update-profile", auth(Role.USER, Role.HOST, Role.ADMIN), UserControllers.updateProfile);
+router.get("/hosts", UserControllers.getAllHosts); // Public endpoint for hosts
 router.get("/", auth(Role.ADMIN), UserControllers.getAllUsers);
 router.delete("/:id", auth(Role.ADMIN), UserControllers.deleteUser);
 router.get("/:id", UserControllers.getUserProfile);

@@ -101,6 +101,19 @@ const logout = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const resendVerificationEmail = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  const result = await AuthServices.resendVerificationEmail(email);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
 export const AuthControllers = {
   register,
   login,
@@ -110,4 +123,5 @@ export const AuthControllers = {
   resetPassword,
   refreshToken,
   logout,
+  resendVerificationEmail,
 };

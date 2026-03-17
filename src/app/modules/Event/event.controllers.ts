@@ -152,6 +152,34 @@ const rejectParticipant = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const saveEvent = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const eventId = req.params.id as string;
+
+  const result = await EventServices.saveEvent(user.id, eventId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Event saved successfully.",
+    data: result,
+  });
+});
+
+const unsaveEvent = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const eventId = req.params.id as string;
+
+  const result = await EventServices.unsaveEvent(user.id, eventId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Event removed from saved.",
+    data: result,
+  });
+});
+
 export const EventControllers = {
   createEvent,
   getAllEvents,
@@ -163,5 +191,7 @@ export const EventControllers = {
   cancelEvent,
   getEventWaitlist,
   approveParticipant,
-  rejectParticipant
+  rejectParticipant,
+  saveEvent,
+  unsaveEvent
 };

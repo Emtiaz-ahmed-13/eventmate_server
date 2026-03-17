@@ -90,12 +90,26 @@ const updateProfileImage = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllHosts = catchAsync(async (req: Request, res: Response) => {
+  // Get all users with HOST role and their profiles
+  const result = await UserServices.getAllUsers();
+  const hosts = result.filter((user: any) => user.role === 'HOST');
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Hosts Fetched Successful.",
+    data: hosts,
+  });
+});
+
 export const UserControllers = {
   updateProfile,
   getMyProfile,
   getUserProfile,
   getUserEvents,
   getAllUsers,
+  getAllHosts,
   deleteUser,
   updateProfileImage
 };

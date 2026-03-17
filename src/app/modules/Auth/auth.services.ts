@@ -189,6 +189,41 @@ const logout = async (userId: string) => {
   return { message: "Logged out successfully." };
 };
 
+const resendVerificationEmail = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(400, "Email is already verified");
+  }
+
+  // Generate new verification token
+  const verifyToken = crypto.randomBytes(32).toString("hex");
+  const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  // Update user with new token
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      verifyToken,
+      verifyTokenExpiry,
+    },
+  });
+
+  // Send verification email
+  await sendVerificationEmail(email, verifyToken);
+
+  return {
+    success: true,
+    message: "Verification email sent successfully",
+  };
+};
+
 export const AuthServices = {
   register,
   login,
@@ -197,4 +232,5 @@ export const AuthServices = {
   resetPassword,
   refreshToken: refreshAccessToken,
   logout,
+  resendVerificationEmail,
 };

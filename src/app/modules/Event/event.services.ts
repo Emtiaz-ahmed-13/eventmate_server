@@ -111,6 +111,17 @@ const getSingleEvent = async (id: string) => {
           },
         },
       },
+      savedBy: {
+        select: {
+          userId: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
     },
   });
   return result;
@@ -351,6 +362,69 @@ const rejectParticipant = async (hostId: string, eventId: string, userId: string
   return { message: "Participant rejected successfully." };
 };
 
+const saveEvent = async (userId: string, eventId: string) => {
+  // Check if event exists
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+  });
+
+  if (!event) {
+    throw new ApiError(404, "Event not found");
+  }
+
+  // Check if already saved
+  const existingSave = await prisma.savedEvent.findUnique({
+    where: {
+      userId_eventId: {
+        userId,
+        eventId,
+      },
+    },
+  });
+
+  if (existingSave) {
+    throw new ApiError(400, "Event already saved");
+  }
+
+  // Save the event
+  const result = await prisma.savedEvent.create({
+    data: {
+      userId,
+      eventId,
+    },
+  });
+
+  return result;
+};
+
+const unsaveEvent = async (userId: string, eventId: string) => {
+  // Check if event is saved
+  const savedEvent = await prisma.savedEvent.findUnique({
+    where: {
+      userId_eventId: {
+        userId,
+        eventId,
+      },
+    },
+  });
+
+  if (!savedEvent) {
+    throw new ApiError(404, "Event not found in saved list");
+  }
+
+  // Remove from saved
+  await prisma.savedEvent.delete({
+    where: {
+      userId_eventId: {
+        userId,
+        eventId,
+      },
+    },
+  });
+
+  return { message: "Event removed from saved successfully" };
+};
+
 export const EventServices = {
   createEvent,
   getAllEvents,
@@ -363,4 +437,6 @@ export const EventServices = {
   getEventWaitlist,
   approveParticipant,
   rejectParticipant,
+  saveEvent,
+  unsaveEvent,
 };

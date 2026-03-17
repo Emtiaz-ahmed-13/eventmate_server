@@ -51,5 +51,15 @@ router.patch(
   auth(Role.HOST, Role.ADMIN),
   EventControllers.rejectParticipant
 );
+router.post(
+  "/:id/save",
+  auth(Role.USER, Role.HOST, Role.ADMIN),
+  EventControllers.saveEvent,
+);
+router.delete(
+  "/:id/unsave",
+  auth(Role.USER, Role.HOST, Role.ADMIN),
+  EventControllers.unsaveEvent,
+);
 
 export const EventRoutes = router;

@@ -13,6 +13,7 @@ router.get(
   AuthControllers.getMe,
 );
 router.get("/verify-email", AuthControllers.verifyEmail);
+router.post("/resend-verification", AuthControllers.resendVerificationEmail);
 router.post("/forgot-password", AuthControllers.forgotPassword);
 router.post("/reset-password", AuthControllers.resetPassword);
 router.post("/refresh-token", AuthControllers.refreshToken);
