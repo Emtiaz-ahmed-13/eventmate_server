@@ -1,651 +1,336 @@
 # EventMate Server
 
-EventMate is a full-featured event management platform backend built with Node.js, Express, and PostgreSQL. It provides comprehensive APIs for user authentication, event management, reviews, and analytics.
+Backend REST API for EventMate — a full-featured event management platform. Built with Node.js, Express, Prisma, and PostgreSQL (Neon).
 
-## Features
+## Live API
 
-- User authentication with JWT tokens
-- Event creation and management
-- User profiles and event participation
-- Event reviews and ratings
-- Saved events functionality
-- Event waitlist management
-- Email notifications and reminders
-- Admin analytics dashboard
-- Role-based access control (USER, HOST, ADMIN)
+```
+https://eventmate-server-3.onrender.com/api/v1
+```
 
 ## Tech Stack
 
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: PostgreSQL
-- **ORM**: Prisma 6
-- **Authentication**: JWT (JSON Web Tokens)
-- **Email**: Nodemailer
-- **File Upload**: ImageKit
-- **Scheduling**: node-cron
-- **Real-time**: Socket.io
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js |
+| Framework | Express.js |
+| Language | TypeScript |
+| ORM | Prisma 6 |
+| Database | PostgreSQL (Neon) |
+| Auth | JWT (access + refresh tokens) |
+| File Upload | ImageKit |
+| Email | Nodemailer (Gmail SMTP) |
+| Payments | Stripe |
+| Scheduling | node-cron |
+| Real-time | Socket.io |
 
-## Prerequisites
+## Roles
 
-- Node.js (v18+)
-- PostgreSQL (v12+)
-- npm or yarn
+- `USER` — can join events, save events, leave reviews
+- `HOST` — can create/edit/delete/cancel events, manage participants
+- `ADMIN` — full platform access
 
-## Installation
+---
 
-1. Clone the repository:
+## Getting Started
+
+### 1. Clone & Install
+
 ```bash
-git clone <repository-url>
+git clone <repo-url>
 cd eventmate_server
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Set up environment variables:
+### 2. Environment Variables
+
 ```bash
 cp .env.example .env
 ```
 
-4. Configure your `.env` file with:
+Fill in your `.env`:
+
 ```env
 PORT=5001
-DATABASE_URL="postgresql://postgres:password@localhost:5432/eventmate?schema=public"
-NODE_ENV="development"
-JWT_SECRET="your_jwt_secret"
-JWT_EXPIRES_IN="1d"
-JWT_REFRESH_TOKEN_SECRET="your_refresh_secret"
-JWT_REFRESH_TOKEN_EXPIRES_IN="30d"
+NODE_ENV=development
+DATABASE_URL="postgresql://user:password@host/dbname"
 
-# Email Configuration
-EMAIL_HOST="smtp.gmail.com"
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=1d
+JWT_REFRESH_TOKEN_SECRET=your_refresh_secret
+JWT_REFRESH_TOKEN_EXPIRES_IN=30d
+
+EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_USER="your_email@gmail.com"
-EMAIL_PASS="your_app_password"
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
 
-# ImageKit Configuration
-IMAGEKIT_PUBLIC_KEY="your_public_key"
-IMAGEKIT_PRIVATE_KEY="your_private_key"
-IMAGEKIT_URL_ENDPOINT="your_endpoint"
+IMAGEKIT_PUBLIC_KEY=your_public_key
+IMAGEKIT_PRIVATE_KEY=your_private_key
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_id
+
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:5001
 ```
 
-5. Set up the database:
+> Never commit `.env` to git. It's in `.gitignore`.
+
+### 3. Database Setup
+
 ```bash
 npx prisma migrate deploy
+npx prisma generate
 ```
 
-6. Start the development server:
+### 4. Run
+
 ```bash
+# Development
 npm run dev
-```
 
-The server will run on `http://localhost:5001`
-
-## API Documentation
-
-### Base URL
-```
-http://localhost:5001/api/v1
-```
-
-### Authentication
-
-Most endpoints require authentication via JWT token in the Authorization header:
-```
-Authorization: Bearer <your_jwt_token>
-```
-
----
-
-## API Endpoints
-
-### Auth Module (`/auth`)
-
-#### Register User
-```
-POST /auth/register
-Content-Type: application/json
-
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "password123",
-  "role": "USER"
-}
-
-Response: 201 Created
-{
-  "success": true,
-  "message": "User registered successfully",
-  "data": { user object }
-}
-```
-
-#### Login
-```
-POST /auth/login
-Content-Type: application/json
-
-{
-  "email": "john@example.com",
-  "password": "password123"
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "data": {
-    "accessToken": "jwt_token",
-    "refreshToken": "refresh_token"
-  }
-}
-```
-
-#### Get Current User
-```
-GET /auth/me
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "success": true,
-  "data": { user object }
-}
-```
-
-#### Verify Email
-```
-GET /auth/verify-email?token=verification_token
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Email verified successfully"
-}
-```
-
-#### Forgot Password
-```
-POST /auth/forgot-password
-Content-Type: application/json
-
-{
-  "email": "john@example.com"
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Password reset link sent to email"
-}
-```
-
-#### Reset Password
-```
-POST /auth/reset-password
-Content-Type: application/json
-
-{
-  "token": "reset_token",
-  "newPassword": "newpassword123"
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Password reset successfully"
-}
-```
-
-#### Refresh Token
-```
-POST /auth/refresh-token
-Content-Type: application/json
-
-{
-  "refreshToken": "refresh_token"
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "data": {
-    "accessToken": "new_jwt_token"
-  }
-}
-```
-
-#### Logout
-```
-POST /auth/logout
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
-```
-
----
-
-### User Module (`/users`)
-
-#### Get My Profile
-```
-GET /users/me
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "success": true,
-  "data": { user profile object }
-}
-```
-
-#### Update Profile
-```
-PATCH /users/update-profile
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "name": "Updated Name",
-  "bio": "My bio",
-  "location": "New York",
-  "interests": ["sports", "music"]
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "data": { updated profile object }
-}
-```
-
-#### Get All Users (Admin Only)
-```
-GET /users
-Authorization: Bearer <admin_token>
-
-Response: 200 OK
-{
-  "success": true,
-  "data": [ array of user objects ]
-}
-```
-
-#### Get User Profile by ID
-```
-GET /users/:id
-
-Response: 200 OK
-{
-  "success": true,
-  "data": { user profile object }
-}
-```
-
-#### Get User's Events
-```
-GET /users/:id/events
-
-Response: 200 OK
-{
-  "success": true,
-  "data": [ array of event objects ]
-}
-```
-
-#### Delete User (Admin Only)
-```
-DELETE /users/:id
-Authorization: Bearer <admin_token>
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "User deleted successfully"
-}
-```
-
----
-
-### Event Module (`/events`)
-
-#### Get All Events
-```
-GET /events?page=1&limit=10&search=keyword
-
-Response: 200 OK
-{
-  "success": true,
-  "data": [ array of event objects ],
-  "pagination": { page, limit, total }
-}
-```
-
-#### Get Single Event
-```
-GET /events/:id
-
-Response: 200 OK
-{
-  "success": true,
-  "data": { event object }
-}
-```
-
-#### Create Event (Host/Admin)
-```
-POST /events
-Authorization: Bearer <host_token>
-Content-Type: multipart/form-data
-
-{
-  "name": "Tech Conference 2024",
-  "type": "Conference",
-  "dateTime": "2024-04-15T10:00:00Z",
-  "location": "New York",
-  "minParticipants": 10,
-  "maxParticipants": 100,
-  "description": "Annual tech conference",
-  "joiningFee": 50,
-  "image": <file>
-}
-
-Response: 201 Created
-{
-  "success": true,
-  "data": { created event object }
-}
-```
-
-#### Update Event (Host/Admin)
-```
-PATCH /events/:id
-Authorization: Bearer <host_token>
-Content-Type: application/json
-
-{
-  "name": "Updated Event Name",
-  "description": "Updated description",
-  "maxParticipants": 150
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "data": { updated event object }
-}
-```
-
-#### Delete Event (Host/Admin)
-```
-DELETE /events/:id
-Authorization: Bearer <host_token>
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Event deleted successfully"
-}
-```
-
-#### Join Event
-```
-POST /events/:id/join
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Joined event successfully"
-}
-```
-
-#### Leave Event
-```
-DELETE /events/:id/leave
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Left event successfully"
-}
-```
-
-#### Cancel Event (Host/Admin)
-```
-PATCH /events/:id/cancel
-Authorization: Bearer <host_token>
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Event cancelled successfully"
-}
-```
-
-#### Get Event Waitlist (Host/Admin)
-```
-GET /events/:id/waitlist
-Authorization: Bearer <host_token>
-
-Response: 200 OK
-{
-  "success": true,
-  "data": [ array of waitlisted users ]
-}
-```
-
----
-
-### Review Module (`/reviews`)
-
-#### Get Host Reviews
-```
-GET /reviews/host/:hostId
-
-Response: 200 OK
-{
-  "success": true,
-  "data": [ array of review objects ]
-}
-```
-
-#### Create Review
-```
-POST /reviews
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "hostId": "host_user_id",
-  "rating": 5,
-  "comment": "Great event organizer!"
-}
-
-Response: 201 Created
-{
-  "success": true,
-  "data": { created review object }
-}
-```
-
----
-
-### Saved Events Module (`/events`)
-
-#### Save Event
-```
-POST /events/:id/save
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Event saved successfully"
-}
-```
-
-#### Unsave Event
-```
-DELETE /events/:id/unsave
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Event unsaved successfully"
-}
-```
-
-#### Get Saved Events
-```
-GET /events/saved
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "success": true,
-  "data": [ array of saved event objects ]
-}
-```
-
----
-
-### Analytics Module (`/analytics`)
-
-#### Get Overview Stats (Admin Only)
-```
-GET /analytics/overview
-Authorization: Bearer <admin_token>
-
-Response: 200 OK
-{
-  "success": true,
-  "data": {
-    "totalUsers": 150,
-    "totalEvents": 45,
-    "totalParticipants": 500,
-    "totalReviews": 120
-  }
-}
-```
-
----
-
-## Error Handling
-
-All errors follow this format:
-
-```json
-{
-  "success": false,
-  "message": "Error description",
-  "error": {
-    "code": "ERROR_CODE",
-    "details": "Additional error details"
-  }
-}
-```
-
-### Common Status Codes
-- `200` - OK
-- `201` - Created
-- `400` - Bad Request
-- `401` - Unauthorized
-- `403` - Forbidden
-- `404` - Not Found
-- `500` - Internal Server Error
-
----
-
-## Database Schema
-
-The application uses the following main models:
-
-- **User** - User accounts with roles (USER, HOST, ADMIN)
-- **Event** - Event listings with details and status
-- **Participant** - Event participation records
-- **Review** - User reviews for event hosts
-- **SavedEvent** - Bookmarked events
-- **Waitlist** - Waitlist for full events
-- **Notification** - User notifications
-- **Profile** - Extended user profile information
-
----
-
-## Development
-
-### Run Development Server
-```bash
-npm run dev
-```
-
-### Generate Prisma Client
-```bash
-npm run generate
-```
-
-### Build for Production
-```bash
+# Production build
 npm run build
-```
-
-### Start Production Server
-```bash
 npm start
 ```
+
+Server runs on `http://localhost:5001`
+
+---
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server with hot reload (tsx watch) |
+| `npm run build` | Generate Prisma client + compile TypeScript |
+| `npm start` | Start compiled production server |
+| `npm run generate` | Regenerate Prisma client |
 
 ---
 
 ## Project Structure
 
 ```
-src/
-├── app/
-│   ├── modules/
-│   │   ├── Auth/
-│   │   ├── User/
-│   │   ├── Event/
-│   │   ├── Review/
-│   │   ├── SavedEvent/
-│   │   ├── Analytics/
-│   │   └── Notification/
-│   ├── middleware/
-│   ├── errors/
-│   ├── shared/
-│   └── routes/
-├── helpers/
-├── utils/
-├── libs/
-├── config/
-└── server.ts
+eventmate_server/
+├── src/
+│   ├── app/
+│   │   ├── modules/
+│   │   │   ├── Auth/          # Register, login, verify email, reset password
+│   │   │   ├── User/          # Profile, update, hosts list
+│   │   │   ├── Event/         # CRUD, join/leave, cancel, waitlist, participants
+│   │   │   ├── Review/        # Create review, get host reviews
+│   │   │   ├── SavedEvent/    # Save/unsave/list saved events
+│   │   │   ├── Payment/       # Stripe payment intent + confirm
+│   │   │   ├── Analytics/     # Admin overview stats
+│   │   │   ├── Admin/         # User/event management, ban, role change
+│   │   │   └── Notification/  # User notifications
+│   │   ├── middleware/        # Auth, error handler, rate limiter
+│   │   ├── shared/            # File uploader (ImageKit + Multer)
+│   │   └── routes/            # Central route registry
+│   ├── config/                # Environment config
+│   ├── helpers/               # JWT, email helpers
+│   └── server.ts              # Entry point
+├── prisma/
+│   └── schema.prisma          # Database schema
+├── generated/
+│   └── prisma/                # Generated Prisma client
+├── .env.example
+└── package.json
 ```
 
 ---
 
-## Contributing
+## API Reference
 
-1. Create a feature branch
-2. Make your changes
-3. Test thoroughly
-4. Submit a pull request
+Base URL: `/api/v1`
+
+Authentication: `Authorization: Bearer <token>` (required on protected routes)
+
+---
+
+### Auth — `/auth`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/auth/register` | — | Register new user |
+| POST | `/auth/login` | — | Login, returns access + refresh tokens |
+| POST | `/auth/logout` | ✅ | Logout |
+| GET | `/auth/me` | ✅ | Get current user |
+| GET | `/auth/verify-email?token=` | — | Verify email address |
+| POST | `/auth/forgot-password` | — | Send password reset email |
+| POST | `/auth/reset-password` | — | Reset password with token |
+| POST | `/auth/refresh-token` | — | Get new access token |
+
+**Register body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "role": "USER"
+}
+```
+
+**Login response:**
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJ...",
+    "refreshToken": "eyJ..."
+  }
+}
+```
+
+---
+
+### Users — `/users`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/users/me` | ✅ | Get own profile |
+| PATCH | `/users/update-profile` | ✅ | Update bio, location, interests |
+| PATCH | `/users/update-profile-image` | ✅ | Upload profile photo (multipart) |
+| GET | `/users/hosts` | — | Get all verified hosts (public) |
+| GET | `/users/:id` | — | Get user profile by ID |
+| GET | `/users/:id/events` | — | Get user's hosted + joined events |
+| GET | `/users` | ADMIN | Get all users |
+| DELETE | `/users/:id` | ADMIN | Delete user |
+
+---
+
+### Events — `/events`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/events` | — | List all events (supports search/filter) |
+| GET | `/events/:id` | — | Get single event |
+| POST | `/events` | HOST/ADMIN | Create event (multipart/form-data) |
+| PATCH | `/events/:id` | HOST/ADMIN | Update event |
+| DELETE | `/events/:id` | HOST/ADMIN | Delete event |
+| PATCH | `/events/:id/cancel` | HOST/ADMIN | Cancel event |
+| POST | `/events/:id/join` | ✅ | Join event |
+| DELETE | `/events/:id/leave` | ✅ | Leave event |
+| GET | `/events/:id/waitlist` | HOST/ADMIN | Get waitlisted users |
+| PATCH | `/events/:eventId/participants/:userId/approve` | HOST/ADMIN | Approve participant |
+| PATCH | `/events/:eventId/participants/:userId/reject` | HOST/ADMIN | Reject participant |
+| POST | `/events/:id/save` | ✅ | Save/bookmark event |
+| DELETE | `/events/:id/unsave` | ✅ | Remove from saved |
+| GET | `/events/saved` | ✅ | Get all saved events |
+
+**Create event fields:** `name`, `type`, `dateTime`, `location`, `maxParticipants`, `description`, `joiningFee`, `approvalRequired`, `image` (file)
+
+---
+
+### Reviews — `/reviews`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/reviews/host/:id` | — | Get all reviews for a host |
+| POST | `/reviews` | ✅ | Submit a review |
+
+**Create review body:**
+```json
+{
+  "hostId": "uuid",
+  "eventId": "uuid",
+  "rating": 5,
+  "comment": "Amazing event!"
+}
+```
+
+---
+
+### Payments — `/payments`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/payments/create-intent` | ✅ | Create Stripe payment intent |
+| POST | `/payments/confirm` | ✅ | Confirm payment after Stripe |
+
+---
+
+### Analytics — `/analytics`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/analytics/overview` | ADMIN | Platform-wide stats |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalUsers": 150,
+    "totalHosts": 30,
+    "totalEvents": 45,
+    "totalRevenue": 2500
+  }
+}
+```
+
+---
+
+### Admin — `/Admin`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/Admin/users` | ADMIN | List all users |
+| GET | `/Admin/hosts` | ADMIN | List all hosts |
+| PATCH | `/Admin/users/:id/role` | ADMIN | Change user role |
+| PATCH | `/Admin/users/:id/ban` | ADMIN | Toggle user ban |
+| DELETE | `/Admin/users/:id` | ADMIN | Delete user |
+| GET | `/Admin/events` | ADMIN | List all events |
+| DELETE | `/Admin/events/:id` | ADMIN | Delete any event |
+| GET | `/Admin/stats` | ADMIN | Basic platform stats |
+
+---
+
+## Error Response Format
+
+```json
+{
+  "success": false,
+  "message": "Descriptive error message",
+  "error": {
+    "code": "ERROR_CODE",
+    "details": "..."
+  }
+}
+```
+
+### HTTP Status Codes
+
+| Code | Meaning |
+|---|---|
+| 200 | OK |
+| 201 | Created |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 500 | Internal Server Error |
+
+---
+
+## Database Models
+
+| Model | Description |
+|---|---|
+| `User` | Accounts with roles: USER, HOST, ADMIN |
+| `Profile` | Extended user info (bio, location, interests, photos) |
+| `Event` | Event listings with status (ACTIVE, CANCELLED) |
+| `Participant` | Join records with status (PENDING, APPROVED, REJECTED) |
+| `Waitlist` | Waitlist entries for full events |
+| `SavedEvent` | Bookmarked events per user |
+| `Review` | Host ratings and comments |
+| `Notification` | In-app notifications |
 
 ---
 
 ## License
 
 ISC
-
----
-
-## Support
-
-For issues and questions, please create an issue in the repository.
