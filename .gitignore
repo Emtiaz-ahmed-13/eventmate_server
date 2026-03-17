@@ -5,3 +5,4 @@
 *.log
 prisma
 generated
+.env.production
