@@ -62,4 +62,30 @@ router.delete(
   EventControllers.unsaveEvent,
 );
 
+// Analytics
+router.get(
+  "/:id/analytics",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.getEventAnalytics,
+);
+
+// Duplicate
+router.post(
+  "/:id/duplicate",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.duplicateEvent,
+);
+
+// Check-in
+router.patch(
+  "/:id/participants/:userId/checkin",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.checkInParticipant,
+);
+router.patch(
+  "/:id/participants/:userId/undo-checkin",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.undoCheckIn,
+);
+
 export const EventRoutes = router;

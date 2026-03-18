@@ -425,6 +425,109 @@ const unsaveEvent = async (userId: string, eventId: string) => {
   return { message: "Event removed from saved successfully" };
 };
 
+// ✅ Check-in participant
+const checkInParticipant = async (hostId: string, eventId: string, userId: string) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "Not authorized");
+
+  const participant = await prisma.participant.findUnique({
+    where: { userId_eventId: { userId, eventId } },
+  });
+  if (!participant) throw new ApiError(404, "Participant Not Found");
+  if (participant.status !== "APPROVED") throw new ApiError(400, "Participant not approved");
+
+  return await prisma.participant.update({
+    where: { userId_eventId: { userId, eventId } },
+    data: { checkedIn: true, checkedInAt: new Date() },
+    include: { user: { select: { id: true, name: true, email: true, profile: true } } },
+  });
+};
+
+// ✅ Undo check-in
+const undoCheckIn = async (hostId: string, eventId: string, userId: string) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "Not authorized");
+
+  return await prisma.participant.update({
+    where: { userId_eventId: { userId, eventId } },
+    data: { checkedIn: false, checkedInAt: null },
+    include: { user: { select: { id: true, name: true, email: true, profile: true } } },
+  });
+};
+
+// ✅ Event analytics for host
+const getEventAnalytics = async (hostId: string, eventId: string) => {
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    include: {
+      participants: {
+        include: { user: { select: { id: true, name: true, email: true, profile: true } } },
+      },
+      Waitlist: true,
+    },
+  });
+
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "Not authorized");
+
+  const approved = event.participants.filter((p) => p.status === "APPROVED");
+  const pending = event.participants.filter((p) => p.status === "PENDING");
+  const checkedIn = approved.filter((p) => p.checkedIn);
+
+  const revenue = approved.length * event.joiningFee;
+  const attendanceRate = event.maxParticipants > 0
+    ? Math.round((approved.length / event.maxParticipants) * 100)
+    : 0;
+  const checkInRate = approved.length > 0
+    ? Math.round((checkedIn.length / approved.length) * 100)
+    : 0;
+
+  return {
+    event: {
+      id: event.id,
+      name: event.name,
+      dateTime: event.dateTime,
+      status: event.status,
+      joiningFee: event.joiningFee,
+      maxParticipants: event.maxParticipants,
+    },
+    stats: {
+      totalApproved: approved.length,
+      totalPending: pending.length,
+      totalWaitlisted: event.Waitlist.length,
+      totalCheckedIn: checkedIn.length,
+      revenue,
+      attendanceRate,
+      checkInRate,
+    },
+    participants: approved.map((p) => ({
+      ...p.user,
+      joinedAt: p.joinedAt,
+      checkedIn: p.checkedIn,
+      checkedInAt: p.checkedInAt,
+    })),
+  };
+};
+
+// ✅ Duplicate event
+const duplicateEvent = async (hostId: string, eventId: string) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "Not authorized");
+
+  const { id, createdAt, updatedAt, cancelledAt, status, ...rest } = event;
+
+  return await prisma.event.create({
+    data: {
+      ...rest,
+      name: `${event.name} (Copy)`,
+      status: "OPEN",
+    },
+  });
+};
+
 export const EventServices = {
   createEvent,
   getAllEvents,
@@ -439,4 +542,8 @@ export const EventServices = {
   rejectParticipant,
   saveEvent,
   unsaveEvent,
+  checkInParticipant,
+  undoCheckIn,
+  getEventAnalytics,
+  duplicateEvent,
 };

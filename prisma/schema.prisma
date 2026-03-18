@@ -109,12 +109,15 @@ model Waitlist {
 }
 
 model Participant {
-  userId   String
-  user     User     @relation(fields: [userId], references: [id])
-  eventId  String
-  event    Event    @relation(fields: [eventId], references: [id])
-  joinedAt DateTime @default(now())
-  status    ParticipantStatus @default(APPROVED)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  eventId     String
+  event       Event     @relation(fields: [eventId], references: [id])
+  joinedAt    DateTime  @default(now())
+  status      ParticipantStatus @default(APPROVED)
+  checkedIn   Boolean   @default(false)
+  checkedInAt DateTime?
+
   @@id([userId, eventId])
   @@map("participants")
 }

@@ -180,6 +180,60 @@ const unsaveEvent = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const checkInParticipant = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const eventId = req.params.id as string;
+  const userId = req.params.userId as string;
+
+  const result = await EventServices.checkInParticipant(host.id, eventId, userId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Participant checked in successfully.",
+    data: result,
+  });
+});
+
+const undoCheckIn = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const eventId = req.params.id as string;
+  const userId = req.params.userId as string;
+
+  const result = await EventServices.undoCheckIn(host.id, eventId, userId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Check-in undone.",
+    data: result,
+  });
+});
+
+const getEventAnalytics = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const result = await EventServices.getEventAnalytics(host.id, req.params.id as string);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Event analytics fetched.",
+    data: result,
+  });
+});
+
+const duplicateEvent = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const result = await EventServices.duplicateEvent(host.id, req.params.id as string);
+
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: "Event duplicated successfully.",
+    data: result,
+  });
+});
+
 export const EventControllers = {
   createEvent,
   getAllEvents,
@@ -193,5 +247,9 @@ export const EventControllers = {
   approveParticipant,
   rejectParticipant,
   saveEvent,
-  unsaveEvent
+  unsaveEvent,
+  checkInParticipant,
+  undoCheckIn,
+  getEventAnalytics,
+  duplicateEvent,
 };
