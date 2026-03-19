@@ -106,6 +106,32 @@ const getAdminStats = async () => {
   };
 };
 
+const getSystemLogs = async (limit = 50, type?: string) => {
+  const notifications = await prisma.notification.findMany({
+    take: limit,
+    orderBy: { createdAt: "desc" },
+    where: type && type !== "all" ? { type } : undefined,
+    include: {
+      user: { select: { id: true, name: true, email: true, role: true } },
+    },
+  });
+  return notifications;
+};
+
+const getPendingHosts = async () => {
+  // Users who registered as HOST role but not yet "verified" by admin
+  // We treat isVerified=true as admin-approved for hosts
+  return await prisma.user.findMany({
+    where: { role: "HOST" },
+    select: {
+      ...safeUserSelect,
+      hostedEvents: { select: { id: true } },
+      reviewsReceived: { select: { rating: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
 export const AdminServices = {
   getAllUsers,
   getAllHosts,
@@ -115,4 +141,6 @@ export const AdminServices = {
   getAllEvents,
   deleteEvent,
   getAdminStats,
+  getSystemLogs,
+  getPendingHosts,
 };

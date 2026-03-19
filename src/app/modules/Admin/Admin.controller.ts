@@ -87,6 +87,28 @@ const getAdminStats = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSystemLogs = catchAsync(async (req: Request, res: Response) => {
+  const limit = Number(req.query.limit) || 50;
+  const type = req.query.type as string | undefined;
+  const result = await AdminServices.getSystemLogs(limit, type);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "System logs fetched successfully.",
+    data: result,
+  });
+});
+
+const getPendingHosts = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminServices.getPendingHosts();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Host list fetched successfully.",
+    data: result,
+  });
+});
+
 export const AdminControllers = {
   getAllUsers,
   getAllHosts,
@@ -96,4 +118,6 @@ export const AdminControllers = {
   getAllEvents,
   deleteEvent,
   getAdminStats,
+  getSystemLogs,
+  getPendingHosts,
 };

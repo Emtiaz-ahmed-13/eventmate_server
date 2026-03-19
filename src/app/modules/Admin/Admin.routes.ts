@@ -20,4 +20,10 @@ router.delete("/events/:id", auth(Role.ADMIN), AdminControllers.deleteEvent);
 // Stats
 router.get("/stats", auth(Role.ADMIN), AdminControllers.getAdminStats);
 
+// System Logs
+router.get("/logs", auth(Role.ADMIN), AdminControllers.getSystemLogs);
+
+// Host Management
+router.get("/pending-hosts", auth(Role.ADMIN), AdminControllers.getPendingHosts);
+
 export const AdminRoutes = router;
