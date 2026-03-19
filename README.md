@@ -1,12 +1,11 @@
-# EventMate Server
+# EventMate — Server
 
-Backend REST API for EventMate — a full-featured event management platform. Built with Node.js, Express, Prisma, and PostgreSQL (Neon).
+> REST API backend for EventMate — a full-featured event management platform.
 
-## Live API
+**Live API:** [https://eventmate-rwy8.onrender.com/api/v1](https://eventmate-rwy8.onrender.com/api/v1)  
+**Frontend:** [https://eventmate-client.onrender.com](https://eventmate-client.onrender.com)
 
-```
-https://eventmate-server-3.onrender.com/api/v1
-```
+---
 
 ## Tech Stack
 
@@ -21,14 +20,18 @@ https://eventmate-server-3.onrender.com/api/v1
 | File Upload | ImageKit |
 | Email | Nodemailer (Gmail SMTP) |
 | Payments | Stripe |
-| Scheduling | node-cron |
 | Real-time | Socket.io |
+| Scheduling | node-cron |
+
+---
 
 ## Roles
 
-- `USER` — can join events, save events, leave reviews
-- `HOST` — can create/edit/delete/cancel events, manage participants
-- `ADMIN` — full platform access
+| Role | Permissions |
+|---|---|
+| `USER` | Join events, save events, leave reviews |
+| `HOST` | Create/edit/delete/cancel events, manage participants |
+| `ADMIN` | Full platform access |
 
 ---
 
@@ -48,12 +51,14 @@ npm install
 cp .env.example .env
 ```
 
-Fill in your `.env`:
+Fill in `.env`:
 
 ```env
 PORT=5001
 NODE_ENV=development
-DATABASE_URL="postgresql://user:password@host/dbname"
+
+DATABASE_URL="postgresql://user:password@host/dbname?sslmode=require"
+DIRECT_URL="postgresql://user:password@direct-host/dbname?sslmode=require"
 
 JWT_SECRET=your_jwt_secret
 JWT_EXPIRES_IN=1d
@@ -76,8 +81,6 @@ FRONTEND_URL=http://localhost:3000
 BACKEND_URL=http://localhost:5001
 ```
 
-> Never commit `.env` to git. It's in `.gitignore`.
-
 ### 3. Database Setup
 
 ```bash
@@ -88,66 +91,46 @@ npx prisma generate
 ### 4. Run
 
 ```bash
-# Development
-npm run dev
-
-# Production build
-npm run build
-npm start
+npm run dev       # Development (tsx watch)
+npm run build     # Compile TypeScript
+npm start         # Start production server
 ```
 
 Server runs on `http://localhost:5001`
 
 ---
 
-## Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start dev server with hot reload (tsx watch) |
-| `npm run build` | Generate Prisma client + compile TypeScript |
-| `npm start` | Start compiled production server |
-| `npm run generate` | Regenerate Prisma client |
-
----
-
 ## Project Structure
 
 ```
-eventmate_server/
-├── src/
-│   ├── app/
-│   │   ├── modules/
-│   │   │   ├── Auth/          # Register, login, verify email, reset password
-│   │   │   ├── User/          # Profile, update, hosts list
-│   │   │   ├── Event/         # CRUD, join/leave, cancel, waitlist, participants
-│   │   │   ├── Review/        # Create review, get host reviews
-│   │   │   ├── SavedEvent/    # Save/unsave/list saved events
-│   │   │   ├── Payment/       # Stripe payment intent + confirm
-│   │   │   ├── Analytics/     # Admin overview stats
-│   │   │   ├── Admin/         # User/event management, ban, role change
-│   │   │   └── Notification/  # User notifications
-│   │   ├── middleware/        # Auth, error handler, rate limiter
-│   │   ├── shared/            # File uploader (ImageKit + Multer)
-│   │   └── routes/            # Central route registry
-│   ├── config/                # Environment config
-│   ├── helpers/               # JWT, email helpers
-│   └── server.ts              # Entry point
-├── prisma/
-│   └── schema.prisma          # Database schema
-├── generated/
-│   └── prisma/                # Generated Prisma client
-├── .env.example
-└── package.json
+src/
+├── app/
+│   ├── modules/
+│   │   ├── Auth/           # Register, login, verify email, reset password
+│   │   ├── User/           # Profile, update, hosts list, header image
+│   │   ├── Event/          # CRUD, join/leave, cancel, waitlist, participants
+│   │   ├── Review/         # Create review, get host reviews, get all reviews
+│   │   ├── SavedEvent/     # Save / unsave / list saved events
+│   │   ├── Payment/        # Stripe payment intent + confirm
+│   │   ├── Analytics/      # Admin overview stats
+│   │   ├── Admin/          # User/event management
+│   │   └── Notification/   # Real-time + email notifications (Socket.io)
+│   ├── middleware/         # Auth guard, error handler, rate limiter
+│   ├── shared/             # Prisma client, catchAsync, sendResponse
+│   └── routes/             # Central route registry
+├── config/                 # Environment config
+├── helpers/                # JWT helpers, email sender
+└── server.ts               # Entry point + Socket.io init
+prisma/
+└── schema.prisma           # Database schema + migrations
 ```
 
 ---
 
 ## API Reference
 
-Base URL: `/api/v1`
-
-Authentication: `Authorization: Bearer <token>` (required on protected routes)
+**Base URL:** `/api/v1`  
+**Auth header:** `Authorization: Bearer <accessToken>`
 
 ---
 
@@ -155,35 +138,15 @@ Authentication: `Authorization: Bearer <token>` (required on protected routes)
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/auth/register` | — | Register new user |
+| POST | `/auth/register` | — | Register new user, sends verification email |
 | POST | `/auth/login` | — | Login, returns access + refresh tokens |
-| POST | `/auth/logout` | ✅ | Logout |
+| POST | `/auth/logout` | ✅ | Logout, clears refresh token |
 | GET | `/auth/me` | ✅ | Get current user |
 | GET | `/auth/verify-email?token=` | — | Verify email address |
 | POST | `/auth/forgot-password` | — | Send password reset email |
 | POST | `/auth/reset-password` | — | Reset password with token |
 | POST | `/auth/refresh-token` | — | Get new access token |
-
-**Register body:**
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "password123",
-  "role": "USER"
-}
-```
-
-**Login response:**
-```json
-{
-  "success": true,
-  "data": {
-    "accessToken": "eyJ...",
-    "refreshToken": "eyJ..."
-  }
-}
-```
+| POST | `/auth/resend-verification` | — | Resend verification email |
 
 ---
 
@@ -194,11 +157,10 @@ Authentication: `Authorization: Bearer <token>` (required on protected routes)
 | GET | `/users/me` | ✅ | Get own profile |
 | PATCH | `/users/update-profile` | ✅ | Update bio, location, interests |
 | PATCH | `/users/update-profile-image` | ✅ | Upload profile photo (multipart) |
-| GET | `/users/hosts` | — | Get all verified hosts (public) |
+| PATCH | `/users/update-header-image` | ✅ | Upload header/cover photo (multipart) |
+| GET | `/users/hosts` | — | Get all verified hosts |
 | GET | `/users/:id` | — | Get user profile by ID |
 | GET | `/users/:id/events` | — | Get user's hosted + joined events |
-| GET | `/users` | ADMIN | Get all users |
-| DELETE | `/users/:id` | ADMIN | Delete user |
 
 ---
 
@@ -206,22 +168,30 @@ Authentication: `Authorization: Bearer <token>` (required on protected routes)
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/events` | — | List all events (supports search/filter) |
+| GET | `/events` | — | List events (search, category, location, dateRange, paidOnly) |
 | GET | `/events/:id` | — | Get single event |
-| POST | `/events` | HOST/ADMIN | Create event (multipart/form-data) |
-| PATCH | `/events/:id` | HOST/ADMIN | Update event |
-| DELETE | `/events/:id` | HOST/ADMIN | Delete event |
-| PATCH | `/events/:id/cancel` | HOST/ADMIN | Cancel event |
+| POST | `/events` | HOST | Create event (multipart/form-data) |
+| PATCH | `/events/:id` | HOST | Update event |
+| DELETE | `/events/:id` | HOST | Delete event |
+| PATCH | `/events/:id/cancel` | HOST | Cancel event |
 | POST | `/events/:id/join` | ✅ | Join event |
 | DELETE | `/events/:id/leave` | ✅ | Leave event |
-| GET | `/events/:id/waitlist` | HOST/ADMIN | Get waitlisted users |
-| PATCH | `/events/:eventId/participants/:userId/approve` | HOST/ADMIN | Approve participant |
-| PATCH | `/events/:eventId/participants/:userId/reject` | HOST/ADMIN | Reject participant |
+| GET | `/events/:id/waitlist` | HOST | Get waitlisted users |
+| PATCH | `/events/:eventId/participants/:userId/approve` | HOST | Approve participant |
+| PATCH | `/events/:eventId/participants/:userId/reject` | HOST | Reject participant |
 | POST | `/events/:id/save` | ✅ | Save/bookmark event |
 | DELETE | `/events/:id/unsave` | ✅ | Remove from saved |
 | GET | `/events/saved` | ✅ | Get all saved events |
 
-**Create event fields:** `name`, `type`, `dateTime`, `location`, `maxParticipants`, `description`, `joiningFee`, `approvalRequired`, `image` (file)
+**Query params for `GET /events`:**
+
+| Param | Type | Description |
+|---|---|---|
+| `search` | string | Search by name |
+| `type` | string | Filter by category |
+| `location` | string | Filter by location |
+| `dateRange` | `today` \| `week` \| `month` | Filter by date window |
+| `paidOnly` | boolean | Show only paid events |
 
 ---
 
@@ -229,10 +199,11 @@ Authentication: `Authorization: Bearer <token>` (required on protected routes)
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
+| GET | `/reviews` | — | Get latest reviews (public) |
 | GET | `/reviews/host/:id` | — | Get all reviews for a host |
-| POST | `/reviews` | ✅ | Submit a review |
+| POST | `/reviews` | ✅ | Submit a review (APPROVED participants only) |
 
-**Create review body:**
+**POST body:**
 ```json
 {
   "hostId": "uuid",
@@ -249,7 +220,7 @@ Authentication: `Authorization: Bearer <token>` (required on protected routes)
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | POST | `/payments/create-intent` | ✅ | Create Stripe payment intent |
-| POST | `/payments/confirm` | ✅ | Confirm payment after Stripe |
+| POST | `/payments/confirm` | ✅ | Confirm payment + add participant |
 
 ---
 
@@ -258,19 +229,6 @@ Authentication: `Authorization: Bearer <token>` (required on protected routes)
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/analytics/overview` | ADMIN | Platform-wide stats |
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "totalUsers": 150,
-    "totalHosts": 30,
-    "totalEvents": 45,
-    "totalRevenue": 2500
-  }
-}
-```
 
 ---
 
@@ -285,34 +243,6 @@ Authentication: `Authorization: Bearer <token>` (required on protected routes)
 | DELETE | `/Admin/users/:id` | ADMIN | Delete user |
 | GET | `/Admin/events` | ADMIN | List all events |
 | DELETE | `/Admin/events/:id` | ADMIN | Delete any event |
-| GET | `/Admin/stats` | ADMIN | Basic platform stats |
-
----
-
-## Error Response Format
-
-```json
-{
-  "success": false,
-  "message": "Descriptive error message",
-  "error": {
-    "code": "ERROR_CODE",
-    "details": "..."
-  }
-}
-```
-
-### HTTP Status Codes
-
-| Code | Meaning |
-|---|---|
-| 200 | OK |
-| 201 | Created |
-| 400 | Bad Request |
-| 401 | Unauthorized |
-| 403 | Forbidden |
-| 404 | Not Found |
-| 500 | Internal Server Error |
 
 ---
 
@@ -321,13 +251,47 @@ Authentication: `Authorization: Bearer <token>` (required on protected routes)
 | Model | Description |
 |---|---|
 | `User` | Accounts with roles: USER, HOST, ADMIN |
-| `Profile` | Extended user info (bio, location, interests, photos) |
-| `Event` | Event listings with status (ACTIVE, CANCELLED) |
-| `Participant` | Join records with status (PENDING, APPROVED, REJECTED) |
+| `Profile` | Bio, location, interests, profile image, header image |
+| `Event` | Listings with status: OPEN, FULL, CANCELLED, COMPLETED |
+| `Participant` | Join records with status: PENDING, APPROVED, REJECTED |
 | `Waitlist` | Waitlist entries for full events |
 | `SavedEvent` | Bookmarked events per user |
 | `Review` | Host ratings and comments |
-| `Notification` | In-app notifications |
+| `Notification` | In-app + email notifications |
+
+---
+
+## Error Format
+
+```json
+{
+  "success": false,
+  "message": "Descriptive error message"
+}
+```
+
+| Code | Meaning |
+|---|---|
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 500 | Internal Server Error |
+
+---
+
+## Deployment
+
+Deployed on **Render** as a Node.js Web Service.
+
+- Build: `npm install && npm run build`
+- Start: `npm start` (`node dist/src/server.js`)
+
+---
+
+## Related
+
+- [EventMate Client](../eventmate_client/README.md) — Next.js frontend
 
 ---
 
