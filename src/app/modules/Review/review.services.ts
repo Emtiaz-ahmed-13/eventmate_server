@@ -1,21 +1,24 @@
 import prisma from "../../shared/prisma";
 import ApiError from "../../errors/ApiError";
+import { NotificationServices } from "../Notification/notification.services";
 
 const createReview = async (reviewerId: string, payload: any) => {
-  const { hostId, rating, comment } = payload;
+  const { hostId, eventId, rating, comment } = payload;
 
   const host = await prisma.user.findUnique({ where: { id: hostId } });
   if (!host || host.role !== "HOST") {
     throw new ApiError(404, "Host Not Found");
   }
 
-  // ✅ already reviewed কিনা check
+  // already reviewed check — per event basis
   const alreadyReviewed = await prisma.review.findFirst({
     where: { reviewerId, hostId },
   });
   if (alreadyReviewed) {
     throw new ApiError(400, "You have already reviewed this host");
   }
+
+  const reviewer = await prisma.user.findUnique({ where: { id: reviewerId } });
 
   const result = await prisma.review.create({
     data: {
@@ -25,6 +28,16 @@ const createReview = async (reviewerId: string, payload: any) => {
       comment,
     },
   });
+
+  // Notify the host
+  await NotificationServices.sendNotification({
+    userId: hostId,
+    message: `${reviewer?.name || "Someone"} left you a ${rating}-star review.`,
+    type: "NEW_REVIEW",
+    email: host.email,
+    subject: "You received a new review on EventMate",
+  });
+
   return result;
 };
 
@@ -57,7 +70,24 @@ const getHostReviews = async (hostId: string) => {
   };
 };
 
+const getAllReviews = async (limit = 6) => {
+  const reviews = await prisma.review.findMany({
+    take: limit,
+    orderBy: { createdAt: "desc" },
+    include: {
+      reviewer: {
+        select: { id: true, name: true, profile: { select: { profileImage: true } } },
+      },
+      host: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+  return reviews;
+};
+
 export const ReviewServices = {
   createReview,
   getHostReviews,
+  getAllReviews,
 };

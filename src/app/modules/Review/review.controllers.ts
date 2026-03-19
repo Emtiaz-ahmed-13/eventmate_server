@@ -26,7 +26,19 @@ const getHostReviews = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllReviews = catchAsync(async (req: Request, res: Response) => {
+  const limit = Number(req.query.limit) || 6;
+  const result = await ReviewServices.getAllReviews(limit);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Reviews Fetched Successful.",
+    data: result,
+  });
+});
+
 export const ReviewControllers = {
   createReview,
   getHostReviews,
+  getAllReviews,
 };
