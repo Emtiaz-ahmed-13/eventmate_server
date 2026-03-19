@@ -6,7 +6,14 @@ import globalErrorHandler from "./app/middleware/globalErrorHandler";
 import { generalLimiter } from "./app/middleware/rateLimiter";
 const app: Application = express();
 // CORS configuration
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://eventmate-client-1.onrender.com",
+    "https://eventmate-client.vercel.app",
+  ],
+  credentials: true,
+}));
 
 app.use(cookieParser());
 app.use(generalLimiter);
