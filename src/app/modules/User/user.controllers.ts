@@ -91,7 +91,6 @@ const updateProfileImage = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllHosts = catchAsync(async (req: Request, res: Response) => {
-  // Get all users with HOST role and their profiles
   const result = await UserServices.getAllUsers();
   const hosts = result.filter((user: any) => user.role === 'HOST');
 
@@ -103,6 +102,21 @@ const getAllHosts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateHeaderImage = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const file = req.file;
+
+  if (!file) throw new ApiError(400, "No image provided");
+
+  const result = await UserServices.updateHeaderImage(user.id, file);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Header image updated successfully.",
+    data: result,
+  });
+});
+
 export const UserControllers = {
   updateProfile,
   getMyProfile,
@@ -111,5 +125,6 @@ export const UserControllers = {
   getAllUsers,
   getAllHosts,
   deleteUser,
-  updateProfileImage
+  updateProfileImage,
+  updateHeaderImage,
 };

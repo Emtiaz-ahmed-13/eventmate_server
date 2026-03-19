@@ -41,15 +41,14 @@ const createEvent = async (hostId: string, payload: any) => {
   return result;
 };
 
-// ✅ Pagination সহ getAllEvents — duplicate নেই
 const getAllEvents = async (filters: any) => {
-  const { searchTerm, type, location, page, limit } = filters;
+  const { searchTerm, type, location, dateRange, paidOnly, page, limit } = filters;
 
   const pageNumber = Number(page) || 1;
   const limitNumber = Number(limit) || 10;
   const skip = (pageNumber - 1) * limitNumber;
 
-  const andConditions = [];
+  const andConditions: any[] = [];
 
   if (searchTerm) {
     andConditions.push({
@@ -60,12 +59,39 @@ const getAllEvents = async (filters: any) => {
     });
   }
 
-  if (type) andConditions.push({ type });
+  if (type) andConditions.push({ type: { contains: type, mode: "insensitive" as any } });
 
   if (location) {
     andConditions.push({
       location: { contains: location, mode: "insensitive" as any },
     });
+  }
+
+  if (paidOnly === true || paidOnly === "true") {
+    andConditions.push({ joiningFee: { gt: 0 } });
+  }
+
+  if (dateRange) {
+    const now = new Date();
+    let dateFrom: Date | undefined;
+    let dateTo: Date | undefined;
+
+    if (dateRange === "today") {
+      dateFrom = new Date(now.setHours(0, 0, 0, 0));
+      dateTo = new Date(now.setHours(23, 59, 59, 999));
+    } else if (dateRange === "week") {
+      dateFrom = new Date();
+      dateTo = new Date();
+      dateTo.setDate(dateTo.getDate() + 7);
+    } else if (dateRange === "month") {
+      dateFrom = new Date();
+      dateTo = new Date();
+      dateTo.setMonth(dateTo.getMonth() + 1);
+    }
+
+    if (dateFrom && dateTo) {
+      andConditions.push({ dateTime: { gte: dateFrom, lte: dateTo } });
+    }
   }
 
   const whereConditions = andConditions.length > 0 ? { AND: andConditions } : {};
@@ -425,6 +451,18 @@ const unsaveEvent = async (userId: string, eventId: string) => {
   return { message: "Event removed from saved successfully" };
 };
 
+const getSavedEvents = async (userId: string) => {
+  return await prisma.savedEvent.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      event: {
+        include: { host: { select: hostSelect } },
+      },
+    },
+  });
+};
+
 // ✅ Check-in participant
 const checkInParticipant = async (hostId: string, eventId: string, userId: string) => {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
@@ -542,6 +580,7 @@ export const EventServices = {
   rejectParticipant,
   saveEvent,
   unsaveEvent,
+  getSavedEvents,
   checkInParticipant,
   undoCheckIn,
   getEventAnalytics,

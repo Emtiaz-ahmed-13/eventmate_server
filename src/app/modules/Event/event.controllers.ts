@@ -180,6 +180,18 @@ const unsaveEvent = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSavedEvents = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const result = await EventServices.getSavedEvents(user.id);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Saved events fetched.",
+    data: result,
+  });
+});
+
 const checkInParticipant = catchAsync(async (req: Request, res: Response) => {
   const host = (req as any).user;
   const eventId = req.params.id as string;
@@ -248,6 +260,7 @@ export const EventControllers = {
   rejectParticipant,
   saveEvent,
   unsaveEvent,
+  getSavedEvents,
   checkInParticipant,
   undoCheckIn,
   getEventAnalytics,

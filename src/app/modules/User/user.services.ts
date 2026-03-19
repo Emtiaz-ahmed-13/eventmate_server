@@ -122,6 +122,20 @@ const updateProfileImage = async (userId: string, file: Express.Multer.File) => 
   return result;
 };
 
+const updateHeaderImage = async (userId: string, file: Express.Multer.File) => {
+  const uploadResponse = await uploadToImageKit(file, `header_${userId}`);
+
+  const result = await prisma.profile.upsert({
+    where: { userId },
+    update: { headerImage: uploadResponse.url },
+    create: {
+      userId,
+      headerImage: uploadResponse.url,
+    },
+  });
+  return result;
+};
+
 export const UserServices = {
   updateProfile,
   getMyProfile,
@@ -129,5 +143,6 @@ export const UserServices = {
   getUserEvents,
   getAllUsers,
   deleteUser,
-  updateProfileImage
+  updateProfileImage,
+  updateHeaderImage,
 };

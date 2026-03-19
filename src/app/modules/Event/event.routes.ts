@@ -7,6 +7,11 @@ import { EventControllers } from "./event.controllers";
 const router = express.Router();
 
 router.get("/", EventControllers.getAllEvents);
+router.get(
+  "/saved",
+  auth(Role.USER, Role.HOST, Role.ADMIN),
+  EventControllers.getSavedEvents,
+);
 router.get("/:id", EventControllers.getSingleEvent);
 
 router.post(

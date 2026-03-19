@@ -18,5 +18,11 @@ router.patch(
   upload.single("image"),
   UserControllers.updateProfileImage
 );
+router.patch(
+  "/update-header-image",
+  auth(Role.USER, Role.HOST, Role.ADMIN),
+  upload.single("image"),
+  UserControllers.updateHeaderImage
+);
 
 export const UserRoutes = router;
