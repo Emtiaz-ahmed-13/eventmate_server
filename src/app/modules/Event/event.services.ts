@@ -496,7 +496,7 @@ const undoCheckIn = async (hostId: string, eventId: string, userId: string) => {
 };
 
 // ✅ Event analytics for host
-const getEventAnalytics = async (hostId: string, eventId: string) => {
+const getEventAnalytics = async (requesterId: string, eventId: string, isAdmin = false) => {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
     include: {
@@ -508,7 +508,7 @@ const getEventAnalytics = async (hostId: string, eventId: string) => {
   });
 
   if (!event) throw new ApiError(404, "Event Not Found");
-  if (event.hostId !== hostId) throw new ApiError(403, "Not authorized");
+  if (!isAdmin && event.hostId !== requesterId) throw new ApiError(403, "Not authorized");
 
   const approved = event.participants.filter((p) => p.status === "APPROVED");
   const pending = event.participants.filter((p) => p.status === "PENDING");

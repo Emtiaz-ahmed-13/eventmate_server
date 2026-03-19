@@ -223,8 +223,9 @@ const undoCheckIn = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getEventAnalytics = catchAsync(async (req: Request, res: Response) => {
-  const host = (req as any).user;
-  const result = await EventServices.getEventAnalytics(host.id, req.params.id as string);
+  const requester = (req as any).user;
+  const isAdmin = requester.role === "ADMIN";
+  const result = await EventServices.getEventAnalytics(requester.id, req.params.id as string, isAdmin);
 
   sendResponse(res, {
     statusCode: 200,
