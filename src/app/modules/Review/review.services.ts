@@ -24,6 +24,7 @@ const createReview = async (reviewerId: string, payload: any) => {
     data: {
       reviewerId,
       hostId,
+      eventId: eventId || null,
       rating: Number(rating),
       comment,
     },
@@ -71,19 +72,25 @@ const getHostReviews = async (hostId: string) => {
 };
 
 const getAllReviews = async (limit = 6) => {
-  const reviews = await prisma.review.findMany({
-    take: limit,
-    orderBy: { createdAt: "desc" },
-    include: {
-      reviewer: {
-        select: { id: true, name: true, profile: { select: { profileImage: true } } },
+  const [reviews, total] = await Promise.all([
+    prisma.review.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        reviewer: {
+          select: { id: true, name: true, profile: { select: { profileImage: true } } },
+        },
+        host: {
+          select: { id: true, name: true },
+        },
+        event: {
+          select: { id: true, name: true },
+        },
       },
-      host: {
-        select: { id: true, name: true },
-      },
-    },
-  });
-  return reviews;
+    }),
+    prisma.review.count(),
+  ]);
+  return { reviews, total };
 };
 
 export const ReviewServices = {

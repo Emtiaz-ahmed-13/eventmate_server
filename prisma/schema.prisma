@@ -81,7 +81,8 @@ model Event {
   cancelledAt     DateTime?
   Waitlist        Waitlist[]
   savedBy         SavedEvent[]
-   approvalRequired Boolean @default(false)
+  reviews         Review[]
+  approvalRequired Boolean @default(false)
 
   @@map("events")
 }
@@ -130,6 +131,8 @@ model Review {
   reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id])
   hostId     String
   host       User     @relation("HostReviews", fields: [hostId], references: [id])
+  eventId    String?
+  event      Event?   @relation(fields: [eventId], references: [id])
   rating     Int
   comment    String?
   createdAt  DateTime @default(now())
