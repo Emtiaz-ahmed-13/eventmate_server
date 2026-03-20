@@ -1,16 +1,17 @@
 # EventMate — Server
 
 <p align="center">
-  <img src="../eventmate_client/public/eventmate.png" alt="EventMate Logo" width="120" />
+  <img src="public/eventmate.png" alt="EventMate Logo" width="600" />
 </p>
 
 <p align="center">
-  <strong>REST API backend for EventMate — a full-featured event management platform.</strong>
+  <strong>Discover and host unforgettable local events.</strong><br/>
+  Connect with people who share your passions through EventMate.
 </p>
 
 <p align="center">
-  <a href="https://eventmate-server-5.onrender.com/api/v1">⚙️ Live API</a> &nbsp;|&nbsp;
-  <a href="https://eventmate-client.onrender.com">🌐 Frontend</a>
+  <a href="https://eventmate-client-1.onrender.com/">🌐 Live App</a> &nbsp;|&nbsp;
+  <a href="https://eventmate-server-5.onrender.com/">⚙️ Backend API</a>
 </p>
 
 ---
