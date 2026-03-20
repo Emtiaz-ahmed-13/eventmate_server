@@ -99,7 +99,10 @@ const getAllEvents = async (filters: any) => {
   const [events, total] = await Promise.all([
     prisma.event.findMany({
       where: whereConditions,
-      include: { host: { select: hostSelect } },
+      include: {
+        host: { select: hostSelect },
+        _count: { select: { participants: true } },
+      },
       skip,
       take: limitNumber,
       orderBy: { createdAt: "desc" },
