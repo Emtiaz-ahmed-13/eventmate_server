@@ -37,10 +37,12 @@ const register = async (payload: TRegister) => {
     },
   });
 
-  await sendVerificationEmail(result.email, verifyToken);
+  await sendVerificationEmail(result.email, verifyToken).catch((err) => {
+    console.error("Failed to send verification email:", err.message);
+  });
 
-  const { password: _, ...userWithoutPassword } = result;
-  return userWithoutPassword;
+  const { password: _, verifyToken: _vt, verifyTokenExpiry: _vte, resetToken: _rt, resetTokenExpiry: _rte, refreshToken: _rf, ...safeUser } = result;
+  return safeUser;
 };
 
 const login = async (payload: TLogin) => {
@@ -60,7 +62,7 @@ const login = async (payload: TLogin) => {
     throw new ApiError(403, "Please verify your email before logging in.");
   }
 
-  const { password: _, ...userWithoutPassword } = user;
+  const { password: _, verifyToken: _vt, verifyTokenExpiry: _vte, resetToken: _rt, resetTokenExpiry: _rte, refreshToken: _rf, ...userWithoutPassword } = user;
 
   const accessToken = jwtHelpers.generateToken(
     userWithoutPassword,
