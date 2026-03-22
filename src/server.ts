@@ -14,6 +14,8 @@ async function main() {
     });
 
     NotificationServices.initSocket(server);
+
+    
   }
 }
 
