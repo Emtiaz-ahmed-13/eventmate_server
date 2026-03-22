@@ -9,7 +9,7 @@ const app: Application = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://eventmate-client-1.onrender.com",
+    "https://eventmate-client-2.onrender.com",
     "https://eventmate-client.vercel.app",
   ],
   credentials: true,
