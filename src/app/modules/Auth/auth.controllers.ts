@@ -38,18 +38,7 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const verifyEmail = catchAsync(async (req: Request, res: Response) => {
-  const { token } = req.query;
 
-  const result = await AuthServices.verifyEmail(token as string);
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: result.message,
-    data: null,
-  });
-});
 const forgotPassword = catchAsync(async (req: Request, res: Response) => {
   const { email } = req.body;
 
@@ -101,27 +90,13 @@ const logout = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const resendVerificationEmail = catchAsync(async (req: Request, res: Response) => {
-  const { email } = req.body;
-
-  const result = await AuthServices.resendVerificationEmail(email);
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: result.message,
-    data: null,
-  });
-});
 
 export const AuthControllers = {
   register,
   login,
   getMe,
-  verifyEmail,
   forgotPassword,
   resetPassword,
   refreshToken,
   logout,
-  resendVerificationEmail,
 };

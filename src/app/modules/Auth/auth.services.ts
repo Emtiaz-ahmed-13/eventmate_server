@@ -4,10 +4,7 @@ import crypto from "crypto";
 import { Secret } from "jsonwebtoken";
 import config from "../../../config";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
-import {
-  sendResetPasswordEmail,
-  sendVerificationEmail,
-} from "../../../utils/sendEmail";
+import { sendResetPasswordEmail } from "../../../utils/sendEmail";
 import ApiError from "../../errors/ApiError";
 import prisma from "../../shared/prisma";
 
@@ -21,24 +18,15 @@ type TRegister = Pick<User, "name" | "email" | "password" | "role">;
 const register = async (payload: TRegister) => {
   const hashedPassword = await bcrypt.hash(payload.password, 12);
 
-  const verifyToken = crypto.randomBytes(32).toString("hex");
-  const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
   const result = await prisma.user.create({
     data: {
       ...payload,
       password: hashedPassword,
-      verifyToken,
-      verifyTokenExpiry,
-      isVerified: false,
+      isVerified: true, // Auto-verify
     },
     include: {
       profile: true,
     },
-  });
-
-  await sendVerificationEmail(result.email, verifyToken).catch((err) => {
-    console.error("Failed to send verification email:", err.message);
   });
 
   const { password: _, verifyToken: _vt, verifyTokenExpiry: _vte, resetToken: _rt, resetTokenExpiry: _rte, refreshToken: _rf, ...safeUser } = result;
@@ -58,10 +46,6 @@ const login = async (payload: TLogin) => {
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) throw new ApiError(401, "Invalid Credentials.");
 
-  if (!user.isVerified) {
-    throw new ApiError(403, "Please verify your email before logging in.");
-  }
-
   const { password: _, verifyToken: _vt, verifyTokenExpiry: _vte, resetToken: _rt, resetTokenExpiry: _rte, refreshToken: _rf, ...userWithoutPassword } = user;
 
   const accessToken = jwtHelpers.generateToken(
@@ -70,7 +54,6 @@ const login = async (payload: TLogin) => {
     config.jwt.expires_in as string,
   );
 
-  // ✅ login এ variable নাম আলাদা রাখা হয়েছে
   const newRefreshToken = jwtHelpers.generateToken(
     userWithoutPassword,
     config.jwt.refresh_token_secret as Secret,
@@ -87,28 +70,6 @@ const login = async (payload: TLogin) => {
     refreshToken: newRefreshToken,
     user: userWithoutPassword,
   };
-};
-
-const verifyEmail = async (token: string) => {
-  const user = await prisma.user.findFirst({
-    where: {
-      verifyToken: token,
-      verifyTokenExpiry: { gt: new Date() },
-    },
-  });
-
-  if (!user) throw new ApiError(400, "Invalid or expired verification link.");
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      isVerified: true,
-      verifyToken: null,
-      verifyTokenExpiry: null,
-    },
-  });
-
-  return { message: "Email verified successfully!" };
 };
 
 const forgotPassword = async (email: string) => {
@@ -191,48 +152,11 @@ const logout = async (userId: string) => {
   return { message: "Logged out successfully." };
 };
 
-const resendVerificationEmail = async (email: string) => {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  if (user.isVerified) {
-    throw new ApiError(400, "Email is already verified");
-  }
-
-  // Generate new verification token
-  const verifyToken = crypto.randomBytes(32).toString("hex");
-  const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-  // Update user with new token
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      verifyToken,
-      verifyTokenExpiry,
-    },
-  });
-
-  // Send verification email
-  await sendVerificationEmail(email, verifyToken);
-
-  return {
-    success: true,
-    message: "Verification email sent successfully",
-  };
-};
-
 export const AuthServices = {
   register,
   login,
-  verifyEmail,
   forgotPassword,
   resetPassword,
   refreshToken: refreshAccessToken,
   logout,
-  resendVerificationEmail,
 };
