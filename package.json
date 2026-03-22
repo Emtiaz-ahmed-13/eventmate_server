@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start:prod": "node dist/src/server.js",
     "start": "node dist/src/server.js",
-    "build": "npx prisma generate && tsc && ls -la dist",
+    "build": "npx prisma generate && tsc",
     "generate": "prisma generate",
     "vercel-build": "npx prisma generate && tsc"
   },
