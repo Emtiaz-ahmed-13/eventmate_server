@@ -67,6 +67,8 @@ model Event {
   type            String
   dateTime        DateTime
   location        String
+  latitude        Float?
+  longitude       Float?
   minParticipants Int
   maxParticipants Int
   description     String
@@ -83,6 +85,7 @@ model Event {
   savedBy         SavedEvent[]
   reviews         Review[]
   approvalRequired Boolean @default(false)
+  category        String?
 
   @@map("events")
 }
