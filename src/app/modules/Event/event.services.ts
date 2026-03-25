@@ -42,7 +42,22 @@ const createEvent = async (hostId: string, payload: any) => {
 };
 
 const getAllEvents = async (filters: any) => {
-  const { searchTerm, type, location, dateRange, paidOnly, page, limit } = filters;
+  const { 
+    searchTerm, 
+    type, 
+    location, 
+    dateRange, 
+    paidOnly, 
+    page, 
+    limit,
+    minPrice,
+    maxPrice,
+    category,
+    sortBy,
+    latitude,
+    longitude,
+    radius, // in kilometers
+  } = filters;
 
   const pageNumber = Number(page) || 1;
   const limitNumber = Number(limit) || 10;
@@ -61,10 +76,22 @@ const getAllEvents = async (filters: any) => {
 
   if (type) andConditions.push({ type: { contains: type, mode: "insensitive" as any } });
 
+  if (category) {
+    andConditions.push({ category: { contains: category, mode: "insensitive" as any } });
+  }
+
   if (location) {
     andConditions.push({
       location: { contains: location, mode: "insensitive" as any },
     });
+  }
+
+  // Price range filter
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    const priceCondition: any = {};
+    if (minPrice !== undefined) priceCondition.gte = Number(minPrice);
+    if (maxPrice !== undefined) priceCondition.lte = Number(maxPrice);
+    andConditions.push({ joiningFee: priceCondition });
   }
 
   if (paidOnly === true || paidOnly === "true") {
@@ -96,27 +123,90 @@ const getAllEvents = async (filters: any) => {
 
   const whereConditions = andConditions.length > 0 ? { AND: andConditions } : {};
 
+  // Determine sort order
+  let orderBy: any = { createdAt: "desc" }; // default
+
+  if (sortBy === "date") {
+    orderBy = { dateTime: "asc" };
+  } else if (sortBy === "price-low") {
+    orderBy = { joiningFee: "asc" };
+  } else if (sortBy === "price-high") {
+    orderBy = { joiningFee: "desc" };
+  } else if (sortBy === "popularity") {
+    // We'll handle this after fetching
+    orderBy = { createdAt: "desc" };
+  }
+
   const [events, total] = await Promise.all([
     prisma.event.findMany({
       where: whereConditions,
       include: {
         host: { select: hostSelect },
-        _count: { select: { participants: true } },
+        _count: { select: { participants: true, reviews: true } },
+        reviews: {
+          select: { rating: true },
+        },
       },
       skip,
       take: limitNumber,
-      orderBy: { createdAt: "desc" },
+      orderBy,
     }),
     prisma.event.count({ where: whereConditions }),
   ]);
 
+
+  let processedEvents = events.map((event) => {
+    const avgRating = event.reviews.length > 0
+      ? event.reviews.reduce((sum, r) => sum + r.rating, 0) / event.reviews.length
+      : 0;
+
+    let distance: number | null = null;
+    if (latitude && longitude && event.latitude && event.longitude) {
+      const R = 6371;
+      const dLat = ((event.latitude - latitude) * Math.PI) / 180;
+      const dLon = ((event.longitude - longitude) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((latitude * Math.PI) / 180) *
+          Math.cos((event.latitude * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      distance = R * c;
+    }
+
+    return {
+      ...event,
+      avgRating: Math.round(avgRating * 10) / 10,
+      distance: distance ? Math.round(distance * 10) / 10 : null,
+    };
+  });
+  if (radius && latitude && longitude) {
+    processedEvents = processedEvents.filter(
+      (e) => e.distance !== null && e.distance <= Number(radius)
+    );
+  }
+  if (sortBy === "distance" && latitude && longitude) {
+    processedEvents.sort((a, b) => {
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
+    });
+  }
+  if (sortBy === "popularity") {
+    processedEvents.sort((a, b) => b._count.participants - a._count.participants);
+  }
+  if (sortBy === "rating") {
+    processedEvents.sort((a, b) => b.avgRating - a.avgRating);
+  }
+
   return {
-    events,
+    events: processedEvents,
     meta: {
-      total,
+      total: processedEvents.length,
       page: pageNumber,
       limit: limitNumber,
-      totalPages: Math.ceil(total / limitNumber),
+      totalPages: Math.ceil(processedEvents.length / limitNumber),
     },
   };
 };
