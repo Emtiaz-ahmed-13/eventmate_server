@@ -115,6 +115,7 @@ model Waitlist {
 }
 
 model Participant {
+  ticketId    String    @unique @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id])
   eventId     String
