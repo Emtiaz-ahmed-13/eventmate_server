@@ -4,7 +4,9 @@ import {
   sendWaitlistPromotionEmail,
   sendApprovalEmail,
   sendRejectionEmail,
+  sendTicketEmail,
 } from "../../../utils/sendEmail";
+import { generateTicketPDF } from "../../../utils/pdf.utils";
 import ApiError from "../../errors/ApiError";
 import prisma from "../../shared/prisma";
 import { NotificationServices } from "../Notification/notification.services";
@@ -308,6 +310,17 @@ const joinEvent = async (userId: string, eventId: string) => {
     });
   }
 
+  if (status === "APPROVED") {
+    const pdfBuffer = await generateTicketPDF(
+      result.event.name,
+      result.user.name,
+      result.event.dateTime.toISOString(),
+      result.event.location,
+      result.ticketId
+    );
+    await sendTicketEmail(result.user.email, result.event.name, pdfBuffer);
+  }
+
   return result;
 };
 
@@ -434,18 +447,26 @@ const approveParticipant = async (hostId: string, eventId: string, userId: strin
   if (!participant) throw new ApiError(404, "Participant Not Found");
   if (participant.status === "APPROVED") throw new ApiError(400, "Already approved");
 
-  await prisma.participant.update({
+  const updatedParticipant = await prisma.participant.update({
     where: { userId_eventId: { userId, eventId } },
     data: { status: "APPROVED" },
+    include: { user: true, event: true },
   });
 
-  await sendApprovalEmail(participant.user.email, event.name);
+  const pdfBuffer = await generateTicketPDF(
+    updatedParticipant.event.name,
+    updatedParticipant.user.name,
+    updatedParticipant.event.dateTime.toISOString(),
+    updatedParticipant.event.location,
+    updatedParticipant.ticketId
+  );
+  await sendTicketEmail(updatedParticipant.user.email, updatedParticipant.event.name, pdfBuffer);
 
   await NotificationServices.sendNotification({
     userId,
     message: `Your request to join "${event.name}" has been approved!`,
     type: "EVENT_JOIN",
-    email: participant.user.email,
+    email: updatedParticipant.user.email,
     subject: `Approved: ${event.name}`,
   });
 

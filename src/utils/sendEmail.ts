@@ -127,3 +127,27 @@ export const sendRejectionEmail = async (
     `,
   });
 };
+
+export const sendTicketEmail = async (
+  email: string,
+  eventName: string,
+  pdfBuffer: Buffer
+) => {
+  await transporter.sendMail({
+    from: `"EventMate" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `Your Ticket: ${eventName}`,
+    html: `
+      <h2>Your Ticket is here! 🎉</h2>
+      <p>Thank you for joining <b>${eventName}</b>. Your ticket is attached as a PDF.</p>
+      <p>Please show the QR code on the ticket at the entrance.</p>
+      <p>See you there!</p>
+    `,
+    attachments: [
+      {
+        filename: `ticket-${eventName.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+        content: pdfBuffer,
+      },
+    ],
+  });
+};
