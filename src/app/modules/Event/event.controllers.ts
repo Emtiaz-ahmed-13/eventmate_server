@@ -247,6 +247,20 @@ const duplicateEvent = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const verifyTicket = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const { eventId, ticketId } = req.params;
+
+  const result = await EventServices.verifyTicket(host.id, eventId, ticketId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.alreadyCheckedIn ? "Participant already checked in." : "Participant verified and checked in.",
+    data: result,
+  });
+});
+
 export const EventControllers = {
   createEvent,
   getAllEvents,
@@ -266,4 +280,5 @@ export const EventControllers = {
   undoCheckIn,
   getEventAnalytics,
   duplicateEvent,
+  verifyTicket,
 };

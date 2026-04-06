@@ -93,4 +93,10 @@ router.patch(
   EventControllers.undoCheckIn,
 );
 
+router.patch(
+  "/:eventId/participants/verify/:ticketId",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.verifyTicket,
+);
+
 export const EventRoutes = router;

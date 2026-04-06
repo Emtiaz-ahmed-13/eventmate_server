@@ -680,6 +680,45 @@ const duplicateEvent = async (hostId: string, eventId: string) => {
   });
 };
 
+const verifyTicket = async (hostId: string, eventId: string, ticketId: string) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "Not authorized to verify tickets for this event");
+
+  const participant = await prisma.participant.findUnique({
+    where: { ticketId },
+    include: { user: { select: { name: true, email: true, profile: true } } }
+  });
+
+  if (!participant || participant.eventId !== eventId) {
+    throw new ApiError(404, "Invalid Ticket");
+  }
+
+  if (participant.status !== "APPROVED") {
+    throw new ApiError(400, "Participant not approved for this event");
+  }
+
+  if (participant.checkedIn) {
+    return {
+      alreadyCheckedIn: true,
+      participant: participant.user,
+      checkedInAt: participant.checkedInAt,
+    };
+  }
+
+  const result = await prisma.participant.update({
+    where: { ticketId },
+    data: { checkedIn: true, checkedInAt: new Date() },
+    include: { user: { select: { name: true, email: true, profile: true } } }
+  });
+
+  return {
+    success: true,
+    participant: result.user,
+    checkedInAt: result.checkedInAt,
+  };
+};
+
 export const EventServices = {
   createEvent,
   getAllEvents,
@@ -699,4 +738,5 @@ export const EventServices = {
   undoCheckIn,
   getEventAnalytics,
   duplicateEvent,
+  verifyTicket,
 };
