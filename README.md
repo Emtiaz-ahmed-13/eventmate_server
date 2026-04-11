@@ -274,6 +274,11 @@ prisma/
 | `Review` | Host ratings, comments, linked to reviewer + host + event |
 | `Notification` | In-app + email notifications |
 
+### Ticketing & QR Code
+- **QR Code Generation**: `qrcode` library used for generating Base64 QR codes.
+- **PDF Generation**: `pdfkit` used to create A6 sized digital tickets.
+- **Verification**: `PATCH /events/:eventId/participants/verify/:ticketId` endpoint for check-ins.
+
 ---
 
 ## Error Format
