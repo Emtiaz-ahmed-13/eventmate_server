@@ -3,7 +3,6 @@
 .env
 .DS_Store
 *.log
-prisma
 generated
 .env.production.env.production
 .env*

@@ -32,6 +32,10 @@ model User {
   reviewsReceived Review[]       @relation("HostReviews")
   Waitlist        Waitlist[]
   savedEvents     SavedEvent[]
+  chatMessages    ChatMessage[]
+  discussions     Discussion[]
+  following       Follower[]     @relation("UserFollowers")
+  followers       Follower[]     @relation("HostFollowers")
 
   @@map("users")
 }
@@ -86,6 +90,8 @@ model Event {
   reviews         Review[]
   approvalRequired Boolean @default(false)
   category        String?
+  chatMessages    ChatMessage[]
+  discussions     Discussion[]
 
   @@map("events")
 }
@@ -142,6 +148,44 @@ model Review {
   createdAt  DateTime @default(now())
 
   @@map("reviews")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  createdAt DateTime @default(now())
+
+  @@map("chat_messages")
+}
+
+model Discussion {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  question  String
+  answer    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("discussions")
+}
+
+model Follower {
+  id         String   @id @default(uuid())
+  followerId String
+  follower   User     @relation("UserFollowers", fields: [followerId], references: [id])
+  hostId     String
+  host       User     @relation("HostFollowers", fields: [hostId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([followerId, hostId])
+  @@map("followers")
 }
 
 enum Role {

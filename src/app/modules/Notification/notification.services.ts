@@ -31,6 +31,17 @@ const initSocket = (server: any) => {
       console.log(`User ${userId} joined their notification room`);
     });
 
+    // Chat Logic
+    socket.on("join-chat", (eventId: string) => {
+      socket.join(`chat-${eventId}`);
+      console.log(`User joined chat room: chat-${eventId}`);
+    });
+
+    socket.on("leave-chat", (eventId: string) => {
+      socket.leave(`chat-${eventId}`);
+      console.log(`User left chat room: chat-${eventId}`);
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected");
     });
@@ -80,8 +91,15 @@ const sendNotification = async (payload: {
   return notification;
 };
 
+const emitChatMessage = (eventId: string, message: any) => {
+  if (io) {
+    io.to(`chat-${eventId}`).emit("new-message", message);
+  }
+};
+
 export const NotificationServices = {
   initSocket,
   sendNotification,
+  emitChatMessage,
 };
 
