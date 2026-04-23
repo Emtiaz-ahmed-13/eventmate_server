@@ -40,6 +40,23 @@ const createEvent = async (hostId: string, payload: any) => {
       joiningFee: Number(joiningFee || 0),
     },
   });
+
+  // Notify Followers
+  const followers = await prisma.follower.findMany({
+    where: { hostId },
+    include: { follower: { select: { email: true, id: true } } }
+  });
+
+  for (const f of followers) {
+    NotificationServices.sendNotification({
+      userId: f.followerId,
+      message: `${host.name} has created a new event: ${result.name}`,
+      type: "NEW_EVENT",
+      email: f.follower.email,
+      subject: `New Event from ${host.name}!`
+    }).catch(err => console.error("Notification failed for follower:", f.followerId, err));
+  }
+
   return result;
 };
 
