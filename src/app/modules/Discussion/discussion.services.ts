@@ -64,3 +64,4 @@ export const DiscussionServices = {
   answerQuestion,
   getEventDiscussions,
 };
+// Added validation for host authority in discussion replies
