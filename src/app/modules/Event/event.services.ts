@@ -756,4 +756,4 @@ export const EventServices = {
   getEventAnalytics,
   duplicateEvent,
   verifyTicket,
-};
+};// Optimized follower lookup for new events
