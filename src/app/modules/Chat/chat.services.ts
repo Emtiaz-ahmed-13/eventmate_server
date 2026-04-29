@@ -53,3 +53,4 @@ export const ChatServices = {
   sendMessage,
   getEventMessages,
 };
+// Cleaned up messaging logs
