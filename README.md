@@ -279,6 +279,11 @@ prisma/
 - **PDF Generation**: `pdfkit` used to create A6 sized digital tickets.
 - **Verification**: `PATCH /events/:eventId/participants/verify/:ticketId` endpoint for check-ins.
 
+### Communication & Social
+- **Chat**: Real-time messaging using Socket.io rooms (`chat-{eventId}`).
+- **Discussion**: Event forum with host-only reply capability.
+- **Follow**: User-to-Host following system with automated notifications for new events.
+
 ---
 
 ## Error Format
