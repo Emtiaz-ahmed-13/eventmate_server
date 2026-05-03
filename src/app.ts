@@ -11,6 +11,7 @@ app.use(cors({
     "http://localhost:3000",
     "https://eventmate-client-2.onrender.com",
     "https://eventmate-client.vercel.app",
+    /\.vercel\.app$/, // Allow all Vercel preview URLs
   ],
   credentials: true,
 }));
