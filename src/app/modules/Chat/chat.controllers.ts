@@ -8,7 +8,7 @@ const sendMessage = catchAsync(async (req: Request, res: Response) => {
   const { eventId } = req.params;
   const { message } = req.body;
 
-  const result = await ChatServices.sendMessage(user.id, eventId, message);
+  const result = await ChatServices.sendMessage(user.id, eventId as string, message);
 
   sendResponse(res, {
     statusCode: 201,
@@ -20,7 +20,7 @@ const sendMessage = catchAsync(async (req: Request, res: Response) => {
 
 const getEventMessages = catchAsync(async (req: Request, res: Response) => {
   const { eventId } = req.params;
-  const result = await ChatServices.getEventMessages(eventId);
+  const result = await ChatServices.getEventMessages(eventId as string);
 
   sendResponse(res, {
     statusCode: 200,

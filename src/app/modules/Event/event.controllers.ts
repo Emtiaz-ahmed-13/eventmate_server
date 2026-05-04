@@ -251,7 +251,7 @@ const verifyTicket = catchAsync(async (req: Request, res: Response) => {
   const host = (req as any).user;
   const { eventId, ticketId } = req.params;
 
-  const result = await EventServices.verifyTicket(host.id, eventId, ticketId);
+  const result = await EventServices.verifyTicket(host.id, eventId as string, ticketId as string);
 
   sendResponse(res, {
     statusCode: 200,

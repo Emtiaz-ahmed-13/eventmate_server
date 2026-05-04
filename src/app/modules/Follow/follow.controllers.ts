@@ -7,7 +7,7 @@ const followHost = catchAsync(async (req: Request, res: Response) => {
   const followerId = (req as any).user.id;
   const { hostId } = req.params;
 
-  const result = await FollowServices.followHost(followerId, hostId);
+  const result = await FollowServices.followHost(followerId, hostId as string);
 
   sendResponse(res, {
     statusCode: 201,
@@ -21,7 +21,7 @@ const unfollowHost = catchAsync(async (req: Request, res: Response) => {
   const followerId = (req as any).user.id;
   const { hostId } = req.params;
 
-  const result = await FollowServices.unfollowHost(followerId, hostId);
+  const result = await FollowServices.unfollowHost(followerId, hostId as string);
 
   sendResponse(res, {
     statusCode: 200,
@@ -33,7 +33,7 @@ const unfollowHost = catchAsync(async (req: Request, res: Response) => {
 
 const getHostFollowers = catchAsync(async (req: Request, res: Response) => {
   const { hostId } = req.params;
-  const result = await FollowServices.getHostFollowers(hostId);
+  const result = await FollowServices.getHostFollowers(hostId as string);
 
   sendResponse(res, {
     statusCode: 200,

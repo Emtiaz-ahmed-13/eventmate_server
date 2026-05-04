@@ -8,7 +8,7 @@ const createQuestion = catchAsync(async (req: Request, res: Response) => {
   const { eventId } = req.params;
   const { question } = req.body;
 
-  const result = await DiscussionServices.createQuestion(user.id, eventId, question);
+  const result = await DiscussionServices.createQuestion(user.id, eventId as string, question);
 
   sendResponse(res, {
     statusCode: 201,
@@ -23,7 +23,7 @@ const answerQuestion = catchAsync(async (req: Request, res: Response) => {
   const { discussionId } = req.params;
   const { answer } = req.body;
 
-  const result = await DiscussionServices.answerQuestion(host.id, discussionId, answer);
+  const result = await DiscussionServices.answerQuestion(host.id, discussionId as string, answer);
 
   sendResponse(res, {
     statusCode: 200,
@@ -35,7 +35,7 @@ const answerQuestion = catchAsync(async (req: Request, res: Response) => {
 
 const getEventDiscussions = catchAsync(async (req: Request, res: Response) => {
   const { eventId } = req.params;
-  const result = await DiscussionServices.getEventDiscussions(eventId);
+  const result = await DiscussionServices.getEventDiscussions(eventId as string);
 
   sendResponse(res, {
     statusCode: 200,
