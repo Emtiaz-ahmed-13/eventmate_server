@@ -1,15 +1,6 @@
 import PDFDocument from 'pdfkit';
 import { generateQRCode } from './qr.utils';
 
-/**
- * Generates a PDF ticket for an event
- * @param eventName Name of the event
- * @param userName Name of the participant
- * @param dateTime Date and time of the event
- * @param location Location of the event
- * @param ticketId Unique ticket ID
- * @returns Buffer containing the PDF data
- */
 export const generateTicketPDF = async (
   eventName: string,
   userName: string,
@@ -35,7 +26,8 @@ export const generateTicketPDF = async (
       doc.moveDown();
 
       // Event Info
-      doc.fillColor('#1f2937').fontSize(14).text(eventName, { weight: 'bold' });
+      doc.fillColor('#1f2937').fontSize(14).font('Helvetica-Bold').text(eventName);
+      doc.font('Helvetica'); // Reset to normal font
       doc.moveDown(0.5);
       doc.fillColor('#4b5563').fontSize(10).text(`Participant: ${userName}`);
       doc.text(`Date: ${new Date(dateTime).toLocaleString()}`);
