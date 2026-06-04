@@ -34,33 +34,66 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      EC2_APP_DIR: ${{ secrets.EC2_APP_DIR || '/home/ubuntu/eventmate' }}
-      RUN_SEED: ${{ secrets.RUN_SEED || 'false' }}
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+      EC2_APP_DIR: ${{ secrets.EC2_APP_DIR }}
+      EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      RUN_SEED: ${{ secrets.RUN_SEED }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate deploy secrets
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in EC2_HOST EC2_USER EC2_SSH_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Secret $name is not set in this repository"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
       - name: Configure SSH key
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/eventmate_ec2_key
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/eventmate_ec2_key
           chmod 600 ~/.ssh/eventmate_ec2_key
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/eventmate_ec2_key > /dev/null
+          ssh-keyscan -T 15 -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Test SSH connection
+        run: |
+          set -euo pipefail
+          APP_DIR="${EC2_APP_DIR:-/home/ubuntu/eventmate}"
+          ssh -i ~/.ssh/eventmate_ec2_key \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=20 \
+            "${EC2_USER}@${EC2_HOST}" "echo SSH OK && test -d '${APP_DIR}'"
 
       - name: Sync server code
         run: |
+          set -euo pipefail
+          APP_DIR="${EC2_APP_DIR:-/home/ubuntu/eventmate}"
           rsync -az --delete \
-            -e "ssh -i ~/.ssh/eventmate_ec2_key" \
+            -e "ssh -i ~/.ssh/eventmate_ec2_key -o StrictHostKeyChecking=no" \
             --exclude ".env" \
             --exclude ".git" \
             --exclude "node_modules" \
             --exclude "dist" \
             --exclude "generated" \
-            ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${EC2_APP_DIR}/eventmate_server/"
+            ./ "${EC2_USER}@${EC2_HOST}:${APP_DIR}/eventmate_server/"
 
       - name: Rebuild and restart server
         run: |
-          ssh -i ~/.ssh/eventmate_ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
-            "EC2_APP_DIR='${EC2_APP_DIR}' RUN_SEED='${RUN_SEED}' bash -s" <<'EOF'
+          set -euo pipefail
+          APP_DIR="${EC2_APP_DIR:-/home/ubuntu/eventmate}"
+          RUN_SEED_FLAG="${RUN_SEED:-false}"
+          ssh -i ~/.ssh/eventmate_ec2_key \
+            -o StrictHostKeyChecking=no \
+            "${EC2_USER}@${EC2_HOST}" \
+            "EC2_APP_DIR='${APP_DIR}' RUN_SEED='${RUN_SEED_FLAG}' bash -s" <<'EOF'
           set -e
           cd "${EC2_APP_DIR:-/home/ubuntu/eventmate}"
           docker compose -f docker-compose.prod.yml build server
