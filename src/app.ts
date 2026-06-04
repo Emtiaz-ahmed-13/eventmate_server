@@ -6,12 +6,18 @@ import globalErrorHandler from "./app/middleware/globalErrorHandler";
 import { generalLimiter } from "./app/middleware/rateLimiter";
 const app: Application = express();
 // CORS configuration
+const envOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(cors({
   origin: [
     "http://localhost:3000",
     "https://eventmate-client-2.onrender.com",
     "https://eventmate-client.vercel.app",
-    /\.vercel\.app$/, // Allow all Vercel preview URLs
+    /\.vercel\.app$/,
+    ...envOrigins,
   ],
   credentials: true,
 }));
