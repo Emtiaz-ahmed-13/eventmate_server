@@ -3,7 +3,6 @@ import catchAsync from "../../shared/catchAsync";
 import sendResponse from "../../shared/sendResponse";
 import { AdminServices } from "./Admin.services";
 
-
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   const result = await AdminServices.getAllUsers();
   sendResponse(res, {
@@ -27,7 +26,7 @@ const getAllHosts = catchAsync(async (req: Request, res: Response) => {
 const changeUserRole = catchAsync(async (req: Request, res: Response) => {
   const result = await AdminServices.changeUserRole(
     req.params.id as string,
-    req.body.role
+    req.body.role,
   );
   sendResponse(res, {
     statusCode: 200,

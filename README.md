@@ -1,292 +1,366 @@
-# EventMate — Server
+# EventMate Server
 
 <p align="center">
-  <img src="/eventmate_client/public/eventmate.png" alt="EventMate Logo" width="600" />
+  <img src="../eventmate_client/public/eventmate.png" alt="EventMate logo" width="600" />
 </p>
 
 <p align="center">
-  <strong>Discover and host unforgettable local events.</strong><br/>
-  Connect with people who share your passions through EventMate.
+  <strong>Express, TypeScript, Prisma, PostgreSQL, Stripe, ImageKit, email, and Socket.IO backend for EventMate.</strong>
 </p>
 
 <p align="center">
-  <a href="https://eventmate-client-1.onrender.com/">🌐 Live App</a> &nbsp;|&nbsp;
-  <a href="https://eventmate-server-5.onrender.com/">⚙️ Backend API</a>
+  <a href="https://eventmate-server-5.onrender.com/">Backend API</a> |
+  <a href="https://eventmate-client-1.onrender.com/">Live App</a> |
+  <a href="../eventmate_client/README.md">Client README</a>
 </p>
 
----
+## Overview
+
+EventMate Server powers authentication, users, host profiles, events, event participants, payments, reviews, notifications, QR tickets, chat, discussions, following, analytics, and admin moderation for the EventMate platform.
+
+The public API is mounted under:
+
+```text
+/api/v1
+```
+
+Protected endpoints expect:
+
+```http
+Authorization: Bearer <accessToken>
+```
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
+| Area | Technology |
+| --- | --- |
 | Runtime | Node.js |
 | Framework | Express.js |
 | Language | TypeScript |
+| Database | PostgreSQL |
 | ORM | Prisma 6 |
-| Database | PostgreSQL (Neon) |
-| Auth | JWT (access + refresh tokens) |
-| File Upload | ImageKit |
-| Email | Nodemailer (Gmail SMTP) |
+| Authentication | JWT access and refresh tokens |
+| File uploads | Multer, ImageKit |
+| Email | Nodemailer |
 | Payments | Stripe |
-| Real-time | Socket.io |
+| Real-time | Socket.IO |
 | Scheduling | node-cron |
-| Rate Limiting | express-rate-limit |
+| Rate limiting | express-rate-limit |
+| Deployment support | Docker, Vercel |
 
----
+## Features
+
+- Register, login, logout, refresh token, current-user lookup, forgot password, and reset password.
+- Role-based access control for `USER`, `HOST`, and `ADMIN`.
+- User profiles with bio, interests, location, profile image, and header image.
+- Event CRUD with image upload, filtering, join/leave, waitlist, approval, duplication, cancellation, and host analytics.
+- Saved events and public host discovery.
+- Stripe payment intent creation and payment confirmation.
+- Participant ticketing with QR generation, PDF tickets, email delivery, and QR verification.
+- Host reviews and public review listing.
+- Real-time notifications and event reminders.
+- Event chat rooms and event discussion Q&A.
+- Host follow/unfollow flow and follower listing.
+- Admin tools for users, hosts, events, system logs, statistics, and pending host approvals.
 
 ## Roles
 
-| Role | Permissions |
-|---|---|
-| `USER` | Join events, save events, leave reviews |
-| `HOST` | Create/edit/delete/cancel events, manage participants, view analytics |
-| `ADMIN` | Full platform access |
+| Role | Common permissions |
+| --- | --- |
+| `USER` | Join events, save events, leave reviews, chat, ask questions, follow hosts |
+| `HOST` | Manage own events, participants, waitlists, analytics, ticket scanning, discussion answers |
+| `ADMIN` | Manage users, hosts, events, logs, stats, and moderation |
 
----
+## Prerequisites
+
+- Node.js 20 or later
+- npm
+- PostgreSQL database
+- Stripe account and API keys
+- ImageKit account and API keys
+- SMTP credentials for email sending
 
 ## Getting Started
 
-### 1. Clone & Install
+Install dependencies:
 
 ```bash
-git clone <repo-url>
 cd eventmate_server
 npm install
 ```
 
-### 2. Environment Variables
+Create `.env` from the template:
 
 ```bash
 cp .env.example .env
 ```
 
-Fill in `.env`:
+Fill in the required values:
 
 ```env
 PORT=5001
 NODE_ENV=development
-DATABASE_URL="postgresql://user:password@host/dbname?sslmode=require"
-DIRECT_URL="postgresql://user:password@direct-host/dbname?sslmode=require"
-JWT_SECRET=your_strong_jwt_secret
+
+DATABASE_URL="postgresql://user:password@host:5432/eventmate?schema=public"
+DIRECT_URL="postgresql://user:password@host:5432/eventmate?schema=public"
+
+JWT_SECRET=replace-with-a-long-random-secret
 JWT_EXPIRES_IN=1d
-JWT_REFRESH_TOKEN_SECRET=your_strong_refresh_secret
+JWT_REFRESH_TOKEN_SECRET=replace-with-a-long-random-refresh-secret
 JWT_REFRESH_TOKEN_EXPIRES_IN=30d
+JWT_RESET_PASS_TOKEN=replace-with-a-long-random-reset-secret
+JWT_RESET_PASS_TOKEN_EXPIRES_IN=10m
+
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
-IMAGEKIT_PUBLIC_KEY=your_public_key
-IMAGEKIT_PRIVATE_KEY=your_private_key
+
+IMAGEKIT_PUBLIC_KEY=your_imagekit_public_key
+IMAGEKIT_PRIVATE_KEY=your_imagekit_private_key
 IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_id
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+STRIPE_SECRET_KEY=sk_test_your_secret_key
+STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key
+
 FRONTEND_URL=http://localhost:3000
 BACKEND_URL=http://localhost:5001
 ```
 
-### 3. Database Setup
+Generate Prisma client and sync the database during local development:
 
 ```bash
-npx prisma db push
 npx prisma generate
+npx prisma db push
 ```
 
-### 4. Run
+Start the development server:
 
 ```bash
-npm run dev       # Development (tsx watch)
-npm run build     # Compile TypeScript
-npm start         # Start production server
+npm run dev
 ```
 
-Server runs on `http://localhost:5001`
+The server will run on `http://localhost:5001`.
 
----
+## Available Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the server in watch mode with `tsx` |
+| `npm run build` | Generate Prisma client and compile TypeScript |
+| `npm start` | Start the compiled production server from `dist/src/server.js` |
+| `npm run generate` | Generate Prisma client |
+| `npm run vercel-build` | Build command for Vercel |
+
+## Environment Variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `PORT` | Yes | HTTP server port |
+| `NODE_ENV` | Yes | Runtime mode, usually `development` or `production` |
+| `DATABASE_URL` | Yes | PostgreSQL connection URL used by Prisma |
+| `DIRECT_URL` | Yes | Direct PostgreSQL URL used by Prisma |
+| `JWT_SECRET` | Yes | Access token signing secret |
+| `JWT_EXPIRES_IN` | Yes | Access token lifetime |
+| `JWT_REFRESH_TOKEN_SECRET` | Yes | Refresh token signing secret |
+| `JWT_REFRESH_TOKEN_EXPIRES_IN` | Yes | Refresh token lifetime |
+| `JWT_RESET_PASS_TOKEN` | Yes | Password reset token signing secret |
+| `JWT_RESET_PASS_TOKEN_EXPIRES_IN` | Yes | Password reset token lifetime |
+| `EMAIL_HOST` | Yes | SMTP host |
+| `EMAIL_PORT` | Yes | SMTP port |
+| `EMAIL_USER` | Yes | SMTP username/from email |
+| `EMAIL_PASS` | Yes | SMTP password or app password |
+| `IMAGEKIT_PUBLIC_KEY` | Yes | ImageKit public key |
+| `IMAGEKIT_PRIVATE_KEY` | Yes | ImageKit private key |
+| `IMAGEKIT_URL_ENDPOINT` | Yes | ImageKit URL endpoint |
+| `STRIPE_SECRET_KEY` | Yes | Stripe secret key |
+| `STRIPE_PUBLISHABLE_KEY` | Yes | Stripe publishable key |
+| `FRONTEND_URL` | Yes | Allowed frontend origin and email link base URL |
+| `BACKEND_URL` | Recommended | Backend public URL for generated links and deployed runtime |
 
 ## Project Structure
 
+```text
+eventmate_server/
+|-- api/                    Vercel serverless entrypoint
+|-- prisma/
+|   `-- schema.prisma       Prisma schema and database models
+|-- src/
+|   |-- app.ts              Express app, CORS, middleware, API routes
+|   |-- server.ts           HTTP server and Socket.IO bootstrap
+|   |-- app/
+|   |   |-- modules/        Feature modules
+|   |   |-- middleware/     Auth, validation, errors, rate limiting
+|   |   |-- routes/         API route registry
+|   |   `-- shared/         Prisma, response, uploader, ImageKit helpers
+|   |-- config/             Environment config
+|   |-- helpers/            JWT and user helpers
+|   `-- utils/              Email, QR, PDF, event reminder utilities
+|-- Dockerfile              Production Docker image
+|-- docker-entrypoint.sh    Runs Prisma migrations before production start
+|-- vercel.json             Vercel deployment config
+`-- package.json            Scripts and dependencies
 ```
-src/
-├── app/
-│   ├── modules/
-│   │   ├── Auth/           # Register, login, verify email, reset password
-│   │   ├── User/           # Profile, update, hosts list, images
-│   │   ├── Event/          # CRUD, join/leave, cancel, duplicate, waitlist, check-in, analytics
-│   │   ├── Review/         # Create review, host reviews, all reviews (with total count)
-│   │   ├── SavedEvent/     # Save / unsave / list saved events
-│   │   ├── Payment/        # Stripe payment intent + confirm
-│   │   ├── Analytics/      # Admin overview stats
-│   │   ├── Admin/          # User/event management, logs, host verifications
-│   │   └── Notification/   # Real-time + email notifications (Socket.io)
-│   ├── middleware/         # Auth guard, global error handler, rate limiter
-│   ├── shared/             # Prisma client, catchAsync, sendResponse
-│   └── routes/             # Central route registry
-├── config/                 # Environment config
-├── helpers/                # JWT helpers
-├── utils/                  # Email sender, event reminder cron
-└── server.ts               # Entry point + Socket.io + keep-alive ping
-prisma/
-└── schema.prisma           # Database schema
-```
-
----
 
 ## API Reference
 
-**Base URL:** `/api/v1`
-**Auth header:** `Authorization: Bearer <accessToken>`
+Base URL:
 
----
-
-### Auth — `/auth`
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/auth/register` | — | Register, sends verification email |
-| POST | `/auth/login` | — | Login, returns access + refresh tokens |
-| POST | `/auth/logout` | ✅ | Logout, clears refresh token |
-| GET | `/auth/me` | ✅ | Get current user |
-| GET | `/auth/verify-email?token=` | — | Verify email address |
-| POST | `/auth/forgot-password` | — | Send password reset email |
-| POST | `/auth/reset-password?token=` | — | Reset password with token |
-| POST | `/auth/refresh-token` | — | Get new access token |
-| POST | `/auth/resend-verification` | — | Resend verification email |
-
----
-
-### Users — `/users`
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/users/me` | ✅ | Get own profile |
-| PATCH | `/users/update-profile` | ✅ | Update bio, location, interests |
-| PATCH | `/users/update-profile-image` | ✅ | Upload profile photo (multipart) |
-| PATCH | `/users/update-header-image` | ✅ | Upload header/cover photo (multipart) |
-| GET | `/users/hosts` | — | Get all verified hosts |
-| GET | `/users/:id` | — | Get user profile by ID |
-| GET | `/users/:id/events` | — | Get user hosted + joined events |
-
----
-
-### Events — `/events`
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/events` | — | List events with filters + pagination |
-| GET | `/events/:id` | — | Get single event |
-| POST | `/events` | HOST | Create event (multipart/form-data) |
-| PATCH | `/events/:id` | HOST | Update event |
-| DELETE | `/events/:id` | HOST | Delete event |
-| PATCH | `/events/:id/cancel` | HOST | Cancel event |
-| POST | `/events/:id/duplicate` | HOST | Duplicate event |
-| GET | `/events/:id/analytics` | HOST | Event analytics |
-| POST | `/events/:id/join` | ✅ | Join event |
-| DELETE | `/events/:id/leave` | ✅ | Leave event |
-| GET | `/events/:id/waitlist` | HOST | Get waitlisted users |
-| PATCH | `/events/:eventId/participants/:userId/approve` | HOST | Approve participant |
-| PATCH | `/events/:eventId/participants/:userId/reject` | HOST | Reject participant |
-| PATCH | `/events/:eventId/participants/:userId/checkin` | HOST | Check-in participant |
-| PATCH | `/events/:eventId/participants/:userId/undo-checkin` | HOST | Undo check-in |
-| POST | `/events/:id/save` | ✅ | Save/bookmark event |
-| DELETE | `/events/:id/unsave` | ✅ | Remove from saved |
-| GET | `/events/saved` | ✅ | Get all saved events |
-
-**Query params for `GET /events`:**
-
-| Param | Type | Description |
-|---|---|---|
-| `searchTerm` | string | Search by name or description |
-| `type` | string | Filter by category |
-| `location` | string | Filter by location |
-| `dateRange` | today / week / month | Filter by date window |
-| `paidOnly` | boolean | Show only paid events |
-| `page` | number | Page number (default: 1) |
-| `limit` | number | Items per page (default: 10) |
-
----
-
-### Reviews — `/reviews`
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/reviews?limit=` | — | Latest reviews — returns `{ reviews, total }` |
-| GET | `/reviews/host/:id` | — | All reviews for a host with average rating |
-| POST | `/reviews` | ✅ | Submit a review |
-
-**POST body:**
-
-```json
-{
-  "hostId": "uuid",
-  "eventId": "uuid",
-  "rating": 5,
-  "comment": "Amazing event!"
-}
+```text
+http://localhost:5001/api/v1
 ```
 
----
+### Auth
 
-### Payments — `/payments`
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/auth/register` | Public | Register a user |
+| `POST` | `/auth/login` | Public | Login and receive tokens |
+| `GET` | `/auth/me` | User/Host/Admin | Get current user |
+| `POST` | `/auth/forgot-password` | Public | Send password reset email |
+| `POST` | `/auth/reset-password` | Public | Reset password |
+| `POST` | `/auth/refresh-token` | Public | Issue a new access token |
+| `POST` | `/auth/logout` | User/Host/Admin | Logout |
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/payments/create-intent` | ✅ | Create Stripe payment intent |
-| POST | `/payments/confirm` | ✅ | Confirm payment + add participant |
+### Users
 
----
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/users/me` | User/Host/Admin | Get own profile |
+| `PATCH` | `/users/update-profile` | User/Host/Admin | Update profile details |
+| `PATCH` | `/users/update-profile-image` | User/Host/Admin | Upload profile image |
+| `PATCH` | `/users/update-header-image` | User/Host/Admin | Upload header image |
+| `GET` | `/users/hosts` | Public | List hosts |
+| `GET` | `/users/:id` | Public | Get public profile |
+| `GET` | `/users/:id/events` | Public | Get a user's hosted/joined events |
+| `GET` | `/users` | Admin | List users |
+| `DELETE` | `/users/:id` | Admin | Delete user |
 
-### Analytics — `/analytics`
+### Events
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/analytics/overview` | ADMIN | Platform-wide stats |
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/events` | Public | List events with filters |
+| `GET` | `/events/saved` | User/Host/Admin | List saved events |
+| `GET` | `/events/:id` | Public | Get event details |
+| `POST` | `/events` | Host/Admin | Create event with optional image upload |
+| `PATCH` | `/events/:id` | Host/Admin | Update event |
+| `DELETE` | `/events/:id` | Host/Admin | Delete event |
+| `POST` | `/events/:id/join` | User/Host/Admin | Join event |
+| `DELETE` | `/events/:id/leave` | User/Host/Admin | Leave event |
+| `PATCH` | `/events/:id/cancel` | Host/Admin | Cancel event |
+| `GET` | `/events/:id/waitlist` | Host/Admin | Get waitlist |
+| `PATCH` | `/events/:eventId/participants/:userId/approve` | Host/Admin | Approve participant |
+| `PATCH` | `/events/:eventId/participants/:userId/reject` | Host/Admin | Reject participant |
+| `PATCH` | `/events/:id/participants/:userId/checkin` | Host/Admin | Check in participant |
+| `PATCH` | `/events/:id/participants/:userId/undo-checkin` | Host/Admin | Undo check-in |
+| `PATCH` | `/events/:eventId/participants/verify/:ticketId` | Host/Admin | Verify QR ticket |
+| `POST` | `/events/:id/save` | User/Host/Admin | Save event |
+| `DELETE` | `/events/:id/unsave` | User/Host/Admin | Unsave event |
+| `GET` | `/events/:id/analytics` | Host/Admin | Event analytics |
+| `POST` | `/events/:id/duplicate` | Host/Admin | Duplicate event |
 
----
+Common `GET /events` query parameters:
 
-### Admin — `/Admin`
+| Parameter | Example | Description |
+| --- | --- | --- |
+| `searchTerm` | `music` | Search by event name or description |
+| `type` | `Workshop` | Filter by type/category |
+| `location` | `Dhaka` | Filter by location |
+| `dateRange` | `week` | Filter by date range |
+| `paidOnly` | `true` | Show paid events only |
+| `page` | `1` | Page number |
+| `limit` | `10` | Items per page |
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/Admin/users` | ADMIN | List all users |
-| GET | `/Admin/hosts` | ADMIN | List all hosts |
-| PATCH | `/Admin/users/:id/role` | ADMIN | Change user role |
-| PATCH | `/Admin/users/:id/ban` | ADMIN | Toggle user ban |
-| DELETE | `/Admin/users/:id` | ADMIN | Delete user |
-| GET | `/Admin/events` | ADMIN | List all events |
-| DELETE | `/Admin/events/:id` | ADMIN | Delete any event |
-| GET | `/Admin/stats` | ADMIN | Platform statistics |
-| GET | `/Admin/logs` | ADMIN | System logs |
-| GET | `/Admin/pending-hosts` | ADMIN | Pending host verifications |
+### Payments
 
----
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/payments/create-intent` | User/Host/Admin | Create Stripe payment intent |
+| `POST` | `/payments/confirm` | User/Host/Admin | Confirm payment and join event |
+
+### Reviews
+
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/reviews` | Public | List reviews |
+| `GET` | `/reviews/host/:id` | Public | List reviews for a host |
+| `POST` | `/reviews` | User/Host/Admin | Create review |
+
+### Analytics
+
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/analytics/overview` | Admin | Platform overview metrics |
+
+### Admin
+
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/Admin/users` | Admin | List users |
+| `GET` | `/Admin/hosts` | Admin | List hosts |
+| `PATCH` | `/Admin/users/:id/role` | Admin | Change user role |
+| `PATCH` | `/Admin/users/:id/ban` | Admin | Ban or unban user |
+| `DELETE` | `/Admin/users/:id` | Admin | Delete user |
+| `GET` | `/Admin/events` | Admin | List events |
+| `DELETE` | `/Admin/events/:id` | Admin | Delete event |
+| `GET` | `/Admin/stats` | Admin | Admin statistics |
+| `GET` | `/Admin/logs` | Admin | System logs |
+| `GET` | `/Admin/pending-hosts` | Admin | Pending host approvals |
+
+### Chat
+
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/chats/:eventId` | User/Host/Admin | Send event chat message |
+| `GET` | `/chats/:eventId` | User/Host/Admin | Get event chat messages |
+
+### Discussions
+
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `GET` | `/discussions/:eventId` | Public | Get event discussion |
+| `POST` | `/discussions/:eventId` | User/Host/Admin | Ask a question |
+| `PATCH` | `/discussions/:discussionId/answer` | Host/Admin | Answer a question |
+
+### Follows
+
+| Method | Endpoint | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/follows/:hostId/follow` | User/Host/Admin | Follow a host |
+| `DELETE` | `/follows/:hostId/unfollow` | User/Host/Admin | Unfollow a host |
+| `GET` | `/follows/:hostId/followers` | Public | Get host followers |
+| `GET` | `/follows/following` | User/Host/Admin | Get followed hosts |
 
 ## Database Models
 
-| Model | Description |
-|---|---|
-| `User` | Accounts with roles: USER, HOST, ADMIN |
-| `Profile` | Bio, location, interests, profile image, header image |
-| `Event` | Listings with status: OPEN, FULL, CANCELLED, COMPLETED |
-| `Participant` | Join records with status: PENDING, APPROVED, REJECTED + check-in |
-| `Waitlist` | Waitlist entries for full events |
-| `SavedEvent` | Bookmarked events per user |
-| `Review` | Host ratings, comments, linked to reviewer + host + event |
-| `Notification` | In-app + email notifications |
+| Model | Purpose |
+| --- | --- |
+| `User` | Account, role, auth tokens, verification, relationships |
+| `Profile` | User profile metadata and images |
+| `Event` | Event listing, host, status, fee, category, approval settings |
+| `Participant` | Event join state, approval status, check-in state, ticket ID |
+| `Waitlist` | Waitlisted users for full events |
+| `SavedEvent` | User bookmarks |
+| `Review` | Host rating and comments |
+| `Notification` | In-app notifications |
+| `ChatMessage` | Event chat messages |
+| `Discussion` | Event Q&A |
+| `Follower` | User-to-host follows |
 
-### Ticketing & QR Code
-- **QR Code Generation**: `qrcode` library used for generating Base64 QR codes.
-- **PDF Generation**: `pdfkit` used to create A6 sized digital tickets.
-- **Verification**: `PATCH /events/:eventId/participants/verify/:ticketId` endpoint for check-ins.
+## Response Shape
 
-### Communication & Social
-- **Chat**: Real-time messaging using Socket.io rooms (`chat-{eventId}`).
-- **Discussion**: Event forum with host-only reply capability.
-- **Follow**: User-to-Host following system with automated notifications for new events.
+Successful responses generally use:
 
----
+```json
+{
+  "success": true,
+  "message": "Request completed successfully",
+  "data": {}
+}
+```
 
-## Error Format
+Errors generally use:
 
 ```json
 {
@@ -295,34 +369,54 @@ prisma/
 }
 ```
 
-| Code | Meaning |
-|---|---|
-| 400 | Bad Request |
-| 401 | Unauthorized |
-| 403 | Forbidden (e.g. email not verified) |
-| 404 | Not Found |
-| 409 | Conflict (e.g. duplicate email) |
-| 500 | Internal Server Error |
+Common HTTP status codes:
 
----
+| Code | Meaning |
+| --- | --- |
+| `400` | Bad request |
+| `401` | Unauthorized |
+| `403` | Forbidden |
+| `404` | Not found |
+| `409` | Conflict |
+| `500` | Internal server error |
 
 ## Deployment
 
-Deployed on **Render** as a Node.js Web Service.
+### Production Build
 
-- Build: `npm install && npm run build`
-- Start: `npm start` (`node dist/src/server.js`)
-- Keep-alive: self-ping cron every 10 minutes (prevents Render free tier cold start)
+```bash
+npm install
+npm run build
+npm start
+```
 
----
+### Docker
+
+The Docker image builds the TypeScript app, generates Prisma client, and runs `docker-entrypoint.sh`. The entrypoint runs `npx prisma migrate deploy` when `DATABASE_URL` is available, then starts the server.
+
+```bash
+docker build -t eventmate-server .
+docker run --env-file .env -p 5001:5001 eventmate-server
+```
+
+### Vercel
+
+This project includes `vercel.json` and `api/index.ts` for Vercel's Node runtime.
+
+Required production environment variables are the same as the `.env` section above.
+
+## Common Issues
+
+- If Prisma fails to generate, confirm `DATABASE_URL` and `DIRECT_URL` are valid PostgreSQL URLs.
+- If frontend requests are blocked by CORS, set `FRONTEND_URL` to the deployed frontend URL.
+- If email verification or password reset links are wrong, check `FRONTEND_URL`.
+- If ImageKit uploads fail, confirm all ImageKit keys and endpoint are set.
+- If Stripe payments fail, confirm the frontend publishable key and backend secret key belong to the same Stripe account/mode.
 
 ## Related
 
-- [EventMate Client](../eventmate_client/README.md) — Next.js frontend
-
----
+- [EventMate Client](../eventmate_client/README.md)
 
 ## License
 
 ISC
-// Final review of backend social infrastructure
