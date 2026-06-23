@@ -85,24 +85,46 @@ const getAllEvents = async (filters: any) => {
   } = filters;
 
   const pageNumber = Number(page) || 1;
-  const limitNumber = Number(limit) || 10;
+  const limitNumber = Number(limit) || 50;
   const skip = (pageNumber - 1) * limitNumber;
 
-  const andConditions: any[] = [];
+  const andConditions: any[] = [
+    { status: { not: EventStatus.CANCELLED } },
+  ];
 
   if (searchTerm) {
     andConditions.push({
       OR: [
         { name: { contains: searchTerm, mode: "insensitive" as any } },
         { description: { contains: searchTerm, mode: "insensitive" as any } },
+        { category: { contains: searchTerm, mode: "insensitive" as any } },
+        { movieName: { contains: searchTerm, mode: "insensitive" as any } },
       ],
     });
   }
 
-  if (type) andConditions.push({ type: { contains: type, mode: "insensitive" as any } });
+  const eventFormatTypes = ["in-person", "online", "virtual", "hybrid"];
+  const typeValue = typeof type === "string" ? type.trim() : "";
+  const categoryValue =
+    typeof category === "string" && category.trim() ? category.trim() : "";
 
-  if (category) {
-    andConditions.push({ category: { contains: category, mode: "insensitive" as any } });
+  if (categoryValue) {
+    andConditions.push({
+      category: { contains: categoryValue, mode: "insensitive" as any },
+    });
+  } else if (
+    typeValue &&
+    eventFormatTypes.includes(typeValue.toLowerCase())
+  ) {
+    andConditions.push({ type: { contains: typeValue, mode: "insensitive" as any } });
+  } else if (typeValue) {
+    // Homepage legacy links use ?type=Music — treat as category search.
+    andConditions.push({
+      OR: [
+        { category: { contains: typeValue, mode: "insensitive" as any } },
+        { name: { contains: typeValue, mode: "insensitive" as any } },
+      ],
+    });
   }
 
   if (location) {
@@ -208,7 +230,7 @@ const getAllEvents = async (filters: any) => {
   });
   if (radius && latitude && longitude) {
     processedEvents = processedEvents.filter(
-      (e) => e.distance !== null && e.distance <= Number(radius)
+      (e) => e.distance === null || e.distance <= Number(radius),
     );
   }
   if (sortBy === "distance" && latitude && longitude) {
@@ -228,15 +250,20 @@ const getAllEvents = async (filters: any) => {
   return {
     events: processedEvents,
     meta: {
-      total: processedEvents.length,
+      total,
       page: pageNumber,
       limit: limitNumber,
-      totalPages: Math.ceil(processedEvents.length / limitNumber),
+      totalPages: Math.ceil(total / limitNumber) || 1,
     },
   };
 };
 
 const getSingleEvent = async (id: string) => {
+  const reservedIds = new Set(["trending", "saved"]);
+  if (reservedIds.has(id)) {
+    throw new ApiError(404, "Event Not Found");
+  }
+
   const result = await prisma.event.findUnique({
     where: { id },
     include: {
