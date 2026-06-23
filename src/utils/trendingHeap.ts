@@ -94,30 +94,68 @@ export type JoinRecord = {
 
 const HOUR_MS = 60 * 60 * 1000;
 
+export type EventJoinStats = {
+  count: number;
+  lastJoinedAt: Date;
+};
+
+export const aggregateJoinStatsInWindow = (
+  joins: JoinRecord[],
+  windowHours: number,
+  now: Date = new Date(),
+): Map<string, EventJoinStats> => {
+  const windowStart = new Date(now.getTime() - windowHours * HOUR_MS);
+  const stats = new Map<string, EventJoinStats>();
+
+  for (const join of joins) {
+    if (join.joinedAt < windowStart || join.joinedAt > now) continue;
+
+    const current = stats.get(join.eventId);
+    if (!current) {
+      stats.set(join.eventId, { count: 1, lastJoinedAt: join.joinedAt });
+      continue;
+    }
+
+    current.count += 1;
+    if (join.joinedAt > current.lastJoinedAt) {
+      current.lastJoinedAt = join.joinedAt;
+    }
+  }
+
+  return stats;
+};
+
 export const countJoinsInSlidingWindow = (
   joins: JoinRecord[],
   windowHours: number,
   now: Date = new Date(),
 ): Map<string, number> => {
-  const windowStart = new Date(now.getTime() - windowHours * HOUR_MS);
-  const counts = new Map<string, number>();
-
-  for (const join of joins) {
-    if (join.joinedAt >= windowStart && join.joinedAt <= now) {
-      counts.set(join.eventId, (counts.get(join.eventId) ?? 0) + 1);
-    }
-  }
-
-  return counts;
+  const stats = aggregateJoinStatsInWindow(joins, windowHours, now);
+  return new Map(
+    Array.from(stats.entries()).map(([eventId, { count }]) => [eventId, count]),
+  );
 };
 
 export const getTopTrendingScores = (
-  scoreByEvent: Map<string, number>,
+  statsByEvent: Map<string, EventJoinStats>,
   limit = 10,
 ): TrendingScore[] => {
   const heap = new MaxHeap();
-  for (const [eventId, score] of scoreByEvent) {
-    if (score > 0) heap.push({ eventId, score });
+  for (const [eventId, { count }] of statsByEvent) {
+    if (count > 0) heap.push({ eventId, score: count });
   }
-  return heap.extractTop(limit);
+
+  const poolSize = Math.max(limit * 3, limit);
+  const candidates = heap.extractTop(Math.min(poolSize, statsByEvent.size));
+
+  return candidates
+    .sort((a, b) => {
+      const aStats = statsByEvent.get(a.eventId)!;
+      const bStats = statsByEvent.get(b.eventId)!;
+      const byRecency =
+        bStats.lastJoinedAt.getTime() - aStats.lastJoinedAt.getTime();
+      if (byRecency !== 0) return byRecency;
+      return b.score - a.score;
+    })
+    .slice(0, limit);
 };

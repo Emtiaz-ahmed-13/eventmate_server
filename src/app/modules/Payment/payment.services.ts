@@ -3,6 +3,7 @@ import config from "../../../config";
 import ApiError from "../../errors/ApiError";
 import prisma from "../../shared/prisma";
 import { PromoCodeServices } from "../PromoCode/promoCode.services";
+import { invalidateTrendingCache } from "../../../utils/trendingCache";
 
 const stripe = new Stripe(config.stripe.secret_key as string);
 
@@ -60,6 +61,8 @@ const createPaymentIntent = async (
         },
       });
     });
+
+    invalidateTrendingCache();
 
     return {
       freeJoin: true,
@@ -153,6 +156,8 @@ const confirmPayment = async (paymentIntentId: string) => {
       });
     }
   });
+
+  invalidateTrendingCache();
 
   return { message: "Payment confirmed and event joined successfully!" };
 };

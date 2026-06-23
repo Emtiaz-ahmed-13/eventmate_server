@@ -14,6 +14,7 @@ import { NotificationServices } from "../Notification/notification.services";
 import {
   getTrendingEvents as fetchTrendingEvents,
   getTrendingCacheMeta,
+  invalidateTrendingCache,
 } from "../../../utils/trendingCache";
 
 const hostSelect = {
@@ -347,6 +348,8 @@ const joinEvent = async (userId: string, eventId: string) => {
       data: { status: "ACCEPTED" },
     });
   }
+
+  invalidateTrendingCache();
 
   return result;
 };

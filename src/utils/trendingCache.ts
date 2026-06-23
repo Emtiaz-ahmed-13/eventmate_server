@@ -1,6 +1,6 @@
 import prisma from "../app/shared/prisma";
 import {
-  countJoinsInSlidingWindow,
+  aggregateJoinStatsInWindow,
   getTopTrendingScores,
 } from "./trendingHeap";
 
@@ -11,6 +11,7 @@ export type TrendingEvent = Awaited<
   ReturnType<typeof prisma.event.findMany>
 >[number] & {
   trendingScore: number;
+  lastJoinedAt?: Date | null;
   host: {
     id: string;
     name: string;
@@ -39,6 +40,56 @@ const eventInclude = {
   _count: { select: { participants: true, reviews: true } },
 };
 
+export const invalidateTrendingCache = () => {
+  cache = null;
+};
+
+const fetchRecentJoinFallback = async (limit: number) => {
+  const recentJoins = await prisma.participant.findMany({
+    where: {
+      status: "APPROVED",
+      event: { status: { in: ["OPEN", "FULL", "COMPLETED"] } },
+    },
+    orderBy: { joinedAt: "desc" },
+    take: 50,
+    select: {
+      eventId: true,
+      joinedAt: true,
+    },
+  });
+
+  const seen = new Set<string>();
+  const ranked: { eventId: string; lastJoinedAt: Date }[] = [];
+
+  for (const join of recentJoins) {
+    if (seen.has(join.eventId)) continue;
+    seen.add(join.eventId);
+    ranked.push({ eventId: join.eventId, lastJoinedAt: join.joinedAt });
+    if (ranked.length >= limit) break;
+  }
+
+  if (ranked.length === 0) return [];
+
+  const events = await prisma.event.findMany({
+    where: { id: { in: ranked.map((item) => item.eventId) } },
+    include: eventInclude,
+  });
+
+  const eventMap = new Map(events.map((event) => [event.id, event]));
+
+  return ranked
+    .map(({ eventId, lastJoinedAt }) => {
+      const event = eventMap.get(eventId);
+      if (!event) return null;
+      return {
+        ...event,
+        trendingScore: event._count.participants,
+        lastJoinedAt,
+      };
+    })
+    .filter((event) => event !== null) as TrendingEvent[];
+};
+
 export const computeTrendingEvents = async (
   limit = DEFAULT_LIMIT,
 ): Promise<TrendingCachePayload> => {
@@ -51,7 +102,6 @@ export const computeTrendingEvents = async (
       status: "APPROVED",
       event: {
         status: { in: ["OPEN", "FULL"] },
-        dateTime: { gte: now },
       },
     },
     select: {
@@ -60,30 +110,40 @@ export const computeTrendingEvents = async (
     },
   });
 
-  const scoreByEvent = countJoinsInSlidingWindow(recentJoins, WINDOW_HOURS, now);
-  const topScores = getTopTrendingScores(scoreByEvent, limit);
+  const statsByEvent = aggregateJoinStatsInWindow(recentJoins, WINDOW_HOURS, now);
+  const topScores = getTopTrendingScores(statsByEvent, limit);
 
   if (topScores.length === 0) {
-    const fallbackEvents = await prisma.event.findMany({
-      where: {
-        status: { in: ["OPEN", "FULL"] },
-        dateTime: { gte: now },
-      },
-      include: eventInclude,
-      orderBy: { createdAt: "desc" },
-      take: limit,
-    });
+    const fallbackEvents = await fetchRecentJoinFallback(limit);
+
+    if (fallbackEvents.length === 0) {
+      const latestEvents = await prisma.event.findMany({
+        where: { status: { in: ["OPEN", "FULL"] } },
+        include: eventInclude,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
+
+      const payload: TrendingCachePayload = {
+        events: latestEvents.map((event) => ({
+          ...event,
+          trendingScore: event._count.participants,
+          lastJoinedAt: null,
+        })),
+        computedAt: now,
+        windowHours: WINDOW_HOURS,
+        limit,
+      };
+      cache = payload;
+      return payload;
+    }
 
     const payload: TrendingCachePayload = {
-      events: fallbackEvents.map((event) => ({
-        ...event,
-        trendingScore: event._count.participants,
-      })),
+      events: fallbackEvents,
       computedAt: now,
       windowHours: WINDOW_HOURS,
       limit,
     };
-
     cache = payload;
     return payload;
   }
@@ -99,7 +159,12 @@ export const computeTrendingEvents = async (
     .map(({ eventId, score }) => {
       const event = eventMap.get(eventId);
       if (!event) return null;
-      return { ...event, trendingScore: score };
+      const stats = statsByEvent.get(eventId);
+      return {
+        ...event,
+        trendingScore: score,
+        lastJoinedAt: stats?.lastJoinedAt ?? null,
+      };
     })
     .filter((event) => event !== null);
 
@@ -132,5 +197,5 @@ export const getTrendingEvents = async (limit = DEFAULT_LIMIT) => {
 export const getTrendingCacheMeta = () => ({
   computedAt: cache?.computedAt ?? null,
   windowHours: WINDOW_HOURS,
-  algorithm: "sliding-window + max-heap",
+  algorithm: "sliding-window + max-heap + recency priority",
 });
