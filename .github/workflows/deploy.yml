@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -28,10 +29,18 @@ jobs:
       - name: Build server
         run: npm run build
 
+      - name: Run tests
+        run: npm run test:run
+
+  # Optional EC2 deploy — only when repository variable EC2_DEPLOY=true is set.
+  # Production deploy on Render is handled separately via Render auto-deploy.
   deploy:
     name: Deploy server to EC2
     needs: [build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main' &&
+      vars.EC2_DEPLOY == 'true'
     runs-on: ubuntu-latest
     env:
       EC2_HOST: ${{ secrets.EC2_HOST }}
