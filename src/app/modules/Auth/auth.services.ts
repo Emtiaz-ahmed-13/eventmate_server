@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { Secret } from "jsonwebtoken";
 import config from "../../../config";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
-import { sendResetPasswordEmail } from "../../../utils/sendEmail";
+import { sendResetPasswordEmail, sendOtpEmail } from "../../../utils/sendEmail";
 import ApiError from "../../errors/ApiError";
 import prisma from "../../shared/prisma";
 
@@ -14,6 +14,33 @@ type TLogin = {
 };
 
 type TRegister = Pick<User, "name" | "email" | "password" | "role">;
+
+const issueAuthTokens = async (user: User & { profile?: unknown }) => {
+  const { password: _, verifyToken: _vt, verifyTokenExpiry: _vte, resetToken: _rt, resetTokenExpiry: _rte, refreshToken: _rf, loginOtp: _lo, loginOtpExpiry: _loe, ...userWithoutPassword } = user;
+
+  const accessToken = jwtHelpers.generateToken(
+    userWithoutPassword,
+    config.jwt.jwt_secret as Secret,
+    config.jwt.expires_in as string,
+  );
+
+  const newRefreshToken = jwtHelpers.generateToken(
+    userWithoutPassword,
+    config.jwt.refresh_token_secret as Secret,
+    config.jwt.refresh_token_expires_in as string,
+  );
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refreshToken: newRefreshToken, loginOtp: null, loginOtpExpiry: null },
+  });
+
+  return {
+    accessToken,
+    refreshToken: newRefreshToken,
+    user: userWithoutPassword,
+  };
+};
 
 const register = async (payload: TRegister) => {
   const hashedPassword = await bcrypt.hash(payload.password, 12);
@@ -46,30 +73,39 @@ const login = async (payload: TLogin) => {
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) throw new ApiError(401, "Invalid Credentials.");
 
-  const { password: _, verifyToken: _vt, verifyTokenExpiry: _vte, resetToken: _rt, resetTokenExpiry: _rte, refreshToken: _rf, ...userWithoutPassword } = user;
+  return issueAuthTokens(user);
+};
 
-  const accessToken = jwtHelpers.generateToken(
-    userWithoutPassword,
-    config.jwt.jwt_secret as Secret,
-    config.jwt.expires_in as string,
-  );
+const sendLoginOtp = async (email: string) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw new ApiError(404, "No account found with this email.");
 
-  const newRefreshToken = jwtHelpers.generateToken(
-    userWithoutPassword,
-    config.jwt.refresh_token_secret as Secret,
-    config.jwt.refresh_token_expires_in as string,
-  );
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const loginOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
   await prisma.user.update({
-    where: { id: user.id },
-    data: { refreshToken: newRefreshToken },
+    where: { email },
+    data: { loginOtp: otp, loginOtpExpiry },
   });
 
-  return {
-    accessToken,
-    refreshToken: newRefreshToken,
-    user: userWithoutPassword,
-  };
+  await sendOtpEmail(email, otp);
+
+  return { message: "Login code sent to your email." };
+};
+
+const verifyLoginOtp = async (email: string, otp: string) => {
+  const user = await prisma.user.findFirst({
+    where: {
+      email,
+      loginOtp: otp,
+      loginOtpExpiry: { gt: new Date() },
+    },
+    include: { profile: true },
+  });
+
+  if (!user) throw new ApiError(400, "Invalid or expired login code.");
+
+  return issueAuthTokens(user);
 };
 
 const forgotPassword = async (email: string) => {
@@ -155,6 +191,8 @@ const logout = async (userId: string) => {
 export const AuthServices = {
   register,
   login,
+  sendLoginOtp,
+  verifyLoginOtp,
   forgotPassword,
   resetPassword,
   refreshToken: refreshAccessToken,

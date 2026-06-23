@@ -90,6 +90,28 @@ const logout = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const sendLoginOtp = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthServices.sendLoginOtp(req.body.email);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const verifyLoginOtp = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthServices.verifyLoginOtp(req.body.email, req.body.otp);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Login successful.",
+    data: result,
+  });
+});
+
 
 export const AuthControllers = {
   register,
@@ -99,4 +121,6 @@ export const AuthControllers = {
   resetPassword,
   refreshToken,
   logout,
+  sendLoginOtp,
+  verifyLoginOtp,
 };

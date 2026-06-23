@@ -261,6 +261,49 @@ const verifyTicket = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const downloadTicket = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { pdfBuffer, filename } = await EventServices.downloadTicket(
+    user.id,
+    req.params.id as string,
+  );
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(pdfBuffer);
+});
+
+const inviteFriend = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const { email, message } = req.body;
+
+  const result = await EventServices.inviteFriendByEmail(
+    host.id,
+    req.params.id as string,
+    email,
+    message,
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const getEventInvites = catchAsync(async (req: Request, res: Response) => {
+  const host = (req as any).user;
+  const result = await EventServices.getEventInvites(host.id, req.params.id as string);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Event invites fetched successfully.",
+    data: result,
+  });
+});
+
 export const EventControllers = {
   createEvent,
   getAllEvents,
@@ -281,4 +324,7 @@ export const EventControllers = {
   getEventAnalytics,
   duplicateEvent,
   verifyTicket,
+  downloadTicket,
+  inviteFriend,
+  getEventInvites,
 };

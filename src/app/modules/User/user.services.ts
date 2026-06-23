@@ -85,7 +85,12 @@ const getUserEvents = async (id: string) => {
   });
 
   return {
-    joined: joined.map((p) => p.event),
+    joined: joined.map((p) => ({
+      ...p.event,
+      ticketId: p.ticketId,
+      participantStatus: p.status,
+      joinedAt: p.joinedAt,
+    })),
     hosted,
   };
 };

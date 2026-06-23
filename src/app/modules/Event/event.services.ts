@@ -5,6 +5,7 @@ import {
   sendApprovalEmail,
   sendRejectionEmail,
   sendTicketEmail,
+  sendEventInviteEmail,
 } from "../../../utils/sendEmail";
 import { generateTicketPDF } from "../../../utils/pdf.utils";
 import ApiError from "../../errors/ApiError";
@@ -336,6 +337,11 @@ const joinEvent = async (userId: string, eventId: string) => {
       result.ticketId
     );
     await sendTicketEmail(result.user.email, result.event.name, pdfBuffer);
+
+    await prisma.eventInvite.updateMany({
+      where: { eventId, email: result.user.email, status: "SENT" },
+      data: { status: "ACCEPTED" },
+    });
   }
 
   return result;
@@ -736,6 +742,80 @@ const verifyTicket = async (hostId: string, eventId: string, ticketId: string) =
   };
 };
 
+const downloadTicket = async (userId: string, eventId: string) => {
+  const participant = await prisma.participant.findUnique({
+    where: { userId_eventId: { userId, eventId } },
+    include: {
+      user: { select: { name: true } },
+      event: { select: { name: true, dateTime: true, location: true } },
+    },
+  });
+
+  if (!participant) throw new ApiError(404, "Ticket not found.");
+  if (participant.status !== "APPROVED") {
+    throw new ApiError(403, "Ticket available only for approved participants.");
+  }
+
+  const pdfBuffer = await generateTicketPDF(
+    participant.event.name,
+    participant.user.name,
+    participant.event.dateTime.toISOString(),
+    participant.event.location,
+    participant.ticketId,
+  );
+
+  return {
+    pdfBuffer,
+    filename: `ticket-${participant.event.name.replace(/\s+/g, "-").toLowerCase()}.pdf`,
+  };
+};
+
+const getPrimaryFrontendUrl = () => {
+  const raw = process.env.FRONTEND_URL || "http://localhost:3000";
+  return raw.split(",")[0].trim();
+};
+
+const inviteFriendByEmail = async (
+  hostId: string,
+  eventId: string,
+  email: string,
+  message?: string,
+) => {
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    include: { host: { select: { id: true, name: true } } },
+  });
+
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "Not authorized to invite for this event");
+
+  const eventUrl = `${getPrimaryFrontendUrl()}/events/${event.id}`;
+  await sendEventInviteEmail(email, event.name, event.host.name, eventUrl, message);
+
+  await prisma.eventInvite.create({
+    data: {
+      eventId,
+      hostId,
+      email: email.toLowerCase(),
+      message,
+      status: "SENT",
+    },
+  });
+
+  return { message: `Invite sent to ${email}` };
+};
+
+const getEventInvites = async (hostId: string, eventId: string) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw new ApiError(404, "Event Not Found");
+  if (event.hostId !== hostId) throw new ApiError(403, "Not authorized");
+
+  return prisma.eventInvite.findMany({
+    where: { eventId },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
 export const EventServices = {
   createEvent,
   getAllEvents,
@@ -756,4 +836,7 @@ export const EventServices = {
   getEventAnalytics,
   duplicateEvent,
   verifyTicket,
-};// Optimized follower lookup for new events
+  downloadTicket,
+  inviteFriendByEmail,
+  getEventInvites,
+};

@@ -2,7 +2,7 @@ import express from "express";
 import { Role } from "../../../../generated/prisma/client";
 import auth from "../../middleware/auth";
 import { AdminControllers } from "./Admin.controller";
-
+import { AdminReportRoutes } from "../Report/report.routes";
 
 const router = express.Router();
 
@@ -25,5 +25,8 @@ router.get("/logs", auth(Role.ADMIN), AdminControllers.getSystemLogs);
 
 // Host Management
 router.get("/pending-hosts", auth(Role.ADMIN), AdminControllers.getPendingHosts);
+
+// Reports
+router.use("/reports", AdminReportRoutes);
 
 export const AdminRoutes = router;

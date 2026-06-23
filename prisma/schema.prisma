@@ -23,6 +23,8 @@ model User {
   refreshToken      String?
   resetToken        String?
   resetTokenExpiry  DateTime?
+  loginOtp          String?
+  loginOtpExpiry    DateTime?
 
   profile         Profile?
   hostedEvents    Event[]        @relation("HostedEvents")
@@ -36,6 +38,10 @@ model User {
   discussions     Discussion[]
   following       Follower[]     @relation("UserFollowers")
   followers       Follower[]     @relation("HostFollowers")
+  payments        Payment[]
+  eventInvites    EventInvite[]  @relation("SentInvites")
+  promoCodes      PromoCode[]
+  reportsMade     Report[]       @relation("ReportsMade")
 
   @@map("users")
 }
@@ -90,8 +96,12 @@ model Event {
   reviews         Review[]
   approvalRequired Boolean @default(false)
   category        String?
+  movieName       String?
   chatMessages    ChatMessage[]
   discussions     Discussion[]
+  payments        Payment[]
+  eventInvites    EventInvite[]
+  promoCodes      PromoCode[]
 
   @@map("events")
 }
@@ -188,6 +198,72 @@ model Follower {
   @@map("followers")
 }
 
+model Payment {
+  id              String        @id @default(uuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  eventId         String
+  event           Event         @relation(fields: [eventId], references: [id])
+  amount          Float
+  discountAmount  Float         @default(0)
+  finalAmount     Float
+  stripePaymentId String        @unique
+  promoCodeId     String?
+  promoCode       PromoCode?    @relation(fields: [promoCodeId], references: [id])
+  status          PaymentStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+
+  @@map("payments")
+}
+
+model EventInvite {
+  id        String       @id @default(uuid())
+  eventId   String
+  event     Event        @relation(fields: [eventId], references: [id])
+  hostId    String
+  host      User         @relation("SentInvites", fields: [hostId], references: [id])
+  email     String
+  message   String?
+  status    InviteStatus @default(SENT)
+  createdAt DateTime     @default(now())
+
+  @@map("event_invites")
+}
+
+model PromoCode {
+  id            String       @id @default(uuid())
+  code          String       @unique
+  eventId       String?
+  event         Event?       @relation(fields: [eventId], references: [id])
+  hostId        String
+  host          User         @relation(fields: [hostId], references: [id])
+  discountType  DiscountType @default(PERCENT)
+  discountValue Float
+  maxUses       Int?
+  usedCount     Int          @default(0)
+  expiresAt     DateTime?
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  payments      Payment[]
+
+  @@map("promo_codes")
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  reporterId  String
+  reporter    User         @relation("ReportsMade", fields: [reporterId], references: [id])
+  targetType  ReportTarget
+  targetId    String
+  reason      String
+  description String?
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  reviewedAt  DateTime?
+
+  @@map("reports")
+}
+
 enum Role {
   USER
   HOST
@@ -204,4 +280,35 @@ enum ParticipantStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum InviteStatus {
+  SENT
+  ACCEPTED
+  EXPIRED
+}
+
+enum ReportTarget {
+  EVENT
+  USER
+  REVIEW
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
 }

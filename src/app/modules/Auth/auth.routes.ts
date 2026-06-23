@@ -7,6 +7,8 @@ const router = express.Router();
 
 router.post("/register", AuthControllers.register);
 router.post("/login", AuthControllers.login);
+router.post("/send-otp", AuthControllers.sendLoginOtp);
+router.post("/verify-otp", AuthControllers.verifyLoginOtp);
 router.get(
   "/me",
   auth(Role.USER, Role.HOST, Role.ADMIN),

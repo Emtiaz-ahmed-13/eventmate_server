@@ -1,5 +1,10 @@
 import nodemailer from "nodemailer";
 
+const getPrimaryFrontendUrl = () => {
+  const raw = process.env.FRONTEND_URL || "http://localhost:3000";
+  return raw.split(",")[0].trim();
+};
+
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: Number(process.env.EMAIL_PORT),
@@ -13,7 +18,7 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendVerificationEmail = async (email: string, token: string) => {
-  const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+  const verifyUrl = `${getPrimaryFrontendUrl()}/verify-email?token=${token}`;
 
   await transporter.sendMail({
     from: `"EventMate" <${process.env.EMAIL_USER}>`,
@@ -29,7 +34,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
 };
 
 export const sendResetPasswordEmail = async (email: string, token: string) => {
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  const resetUrl = `${getPrimaryFrontendUrl()}/reset-password?token=${token}`;
 
   await transporter.sendMail({
     from: `"EventMate" <${process.env.EMAIL_USER}>`,
@@ -149,5 +154,41 @@ export const sendTicketEmail = async (
         content: pdfBuffer,
       },
     ],
+  });
+};
+
+export const sendOtpEmail = async (email: string, otp: string) => {
+  await transporter.sendMail({
+    from: `"EventMate" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "Your EventMate login code",
+    html: `
+      <h2>Login Verification</h2>
+      <p>Your one-time login code is:</p>
+      <h1 style="letter-spacing: 8px; font-size: 32px;">${otp}</h1>
+      <p>This code expires in <b>10 minutes</b>.</p>
+      <p>If you didn't request this, you can ignore this email.</p>
+    `,
+  });
+};
+
+export const sendEventInviteEmail = async (
+  email: string,
+  eventName: string,
+  hostName: string,
+  eventUrl: string,
+  message?: string,
+) => {
+  await transporter.sendMail({
+    from: `"EventMate" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `${hostName} invited you to ${eventName}`,
+    html: `
+      <h2>You're invited! 🎉</h2>
+      <p><b>${hostName}</b> invited you to join <b>${eventName}</b> on EventMate.</p>
+      ${message ? `<p><i>"${message}"</i></p>` : ""}
+      <p><a href="${eventUrl}">${eventUrl}</a></p>
+      <p>Click the link to view the event and join.</p>
+    `,
   });
 };

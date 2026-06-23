@@ -36,6 +36,21 @@ router.delete(
   auth(Role.USER, Role.HOST, Role.ADMIN),
   EventControllers.leaveEvent,
 );
+router.get(
+  "/:id/ticket/download",
+  auth(Role.USER, Role.HOST, Role.ADMIN),
+  EventControllers.downloadTicket,
+);
+router.post(
+  "/:id/invite",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.inviteFriend,
+);
+router.get(
+  "/:id/invites",
+  auth(Role.HOST, Role.ADMIN),
+  EventControllers.getEventInvites,
+);
 router.patch(
   "/:id/cancel",
   auth(Role.HOST, Role.ADMIN),

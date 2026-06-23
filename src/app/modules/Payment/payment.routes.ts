@@ -17,4 +17,11 @@ router.post(
   PaymentControllers.confirmPayment
 );
 
+router.get("/me", auth(Role.USER, Role.HOST, Role.ADMIN), PaymentControllers.getMyPayments);
+router.get(
+  "/event/:eventId",
+  auth(Role.HOST, Role.ADMIN),
+  PaymentControllers.getEventPayments,
+);
+
 export const PaymentRoutes = router;

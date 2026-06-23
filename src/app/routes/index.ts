@@ -11,6 +11,8 @@ import { AdminRoutes } from "../modules/Admin/Admin.routes";
 import { ChatRoutes } from "../modules/Chat/chat.routes";
 import { DiscussionRoutes } from "../modules/Discussion/discussion.routes";
 import { FollowRoutes } from "../modules/Follow/follow.routes";
+import { PromoCodeRoutes } from "../modules/PromoCode/promoCode.routes";
+import { ReportRoutes } from "../modules/Report/report.routes";
 
 const router = express.Router();
 
@@ -58,6 +60,14 @@ const moduleRoutes = [
   {
     path: "/follows",
     route: FollowRoutes,
+  },
+  {
+    path: "/promo-codes",
+    route: PromoCodeRoutes,
+  },
+  {
+    path: "/reports",
+    route: ReportRoutes,
   },
 ];
 

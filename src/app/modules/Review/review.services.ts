@@ -10,12 +10,14 @@ const createReview = async (reviewerId: string, payload: any) => {
     throw new ApiError(404, "Host Not Found");
   }
 
-  // already reviewed check — per event basis
+  // already reviewed check — per event when eventId provided
   const alreadyReviewed = await prisma.review.findFirst({
-    where: { reviewerId, hostId },
+    where: eventId
+      ? { reviewerId, hostId, eventId }
+      : { reviewerId, hostId },
   });
   if (alreadyReviewed) {
-    throw new ApiError(400, "You have already reviewed this host");
+    throw new ApiError(400, eventId ? "You have already reviewed this event" : "You have already reviewed this host");
   }
 
   const reviewer = await prisma.user.findUnique({ where: { id: reviewerId } });
