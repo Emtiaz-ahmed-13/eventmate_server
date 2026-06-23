@@ -63,6 +63,62 @@ async function removeDuplicateEvents() {
   console.log(`Removed ${duplicateIds.length} duplicate event(s).`);
 }
 
+async function removeUserByName(name: string) {
+  const users = await prisma.user.findMany({
+    where: { name: { equals: name, mode: "insensitive" } },
+  });
+
+  if (users.length === 0) {
+    console.log(`No user found with name "${name}".`);
+    return;
+  }
+
+  for (const user of users) {
+    const hostedEvents = await prisma.event.findMany({
+      where: { hostId: user.id },
+      select: { id: true },
+    });
+    const eventIds = hostedEvents.map((event) => event.id);
+
+    if (eventIds.length > 0) {
+      await safeDeleteMany(() =>
+        prisma.chatMessage.deleteMany({ where: { eventId: { in: eventIds } } })
+      );
+      await safeDeleteMany(() =>
+        prisma.discussion.deleteMany({ where: { eventId: { in: eventIds } } })
+      );
+      await prisma.participant.deleteMany({ where: { eventId: { in: eventIds } } });
+      await prisma.waitlist.deleteMany({ where: { eventId: { in: eventIds } } });
+      await prisma.savedEvent.deleteMany({ where: { eventId: { in: eventIds } } });
+      await prisma.review.deleteMany({ where: { eventId: { in: eventIds } } });
+      await prisma.event.deleteMany({ where: { id: { in: eventIds } } });
+    }
+
+    await safeDeleteMany(() =>
+      prisma.chatMessage.deleteMany({ where: { userId: user.id } })
+    );
+    await safeDeleteMany(() =>
+      prisma.discussion.deleteMany({ where: { userId: user.id } })
+    );
+    await prisma.review.deleteMany({
+      where: { OR: [{ reviewerId: user.id }, { hostId: user.id }] },
+    });
+    await safeDeleteMany(() =>
+      prisma.follower.deleteMany({
+        where: { OR: [{ followerId: user.id }, { hostId: user.id }] },
+      })
+    );
+    await prisma.notification.deleteMany({ where: { userId: user.id } });
+    await prisma.participant.deleteMany({ where: { userId: user.id } });
+    await prisma.waitlist.deleteMany({ where: { userId: user.id } });
+    await prisma.savedEvent.deleteMany({ where: { userId: user.id } });
+    await prisma.profile.deleteMany({ where: { userId: user.id } });
+    await prisma.user.delete({ where: { id: user.id } });
+
+    console.log(`Removed user: ${user.name} (${user.email})`);
+  }
+}
+
 async function main() {
   const email = "admin@eventmate.com";
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -91,6 +147,7 @@ async function main() {
   console.log("  Password: Admin@1234");
   console.log("  Role    :", adminUser!.role);
 
+  await removeUserByName("Nafisa");
   await removeDuplicateEvents();
 
   const events = [

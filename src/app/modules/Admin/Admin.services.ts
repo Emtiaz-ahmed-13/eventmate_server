@@ -46,7 +46,32 @@ const toggleUserBan = async (id: string) => {
 const deleteUser = async (id: string) => {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) throw new ApiError(404, "User Not Found");
+
+  const hostedEvents = await prisma.event.findMany({
+    where: { hostId: id },
+    select: { id: true },
+  });
+  const eventIds = hostedEvents.map((event) => event.id);
+
   await prisma.$transaction(async (tx) => {
+    if (eventIds.length > 0) {
+      await tx.chatMessage.deleteMany({ where: { eventId: { in: eventIds } } });
+      await tx.discussion.deleteMany({ where: { eventId: { in: eventIds } } });
+      await tx.participant.deleteMany({ where: { eventId: { in: eventIds } } });
+      await tx.waitlist.deleteMany({ where: { eventId: { in: eventIds } } });
+      await tx.savedEvent.deleteMany({ where: { eventId: { in: eventIds } } });
+      await tx.review.deleteMany({ where: { eventId: { in: eventIds } } });
+      await tx.event.deleteMany({ where: { id: { in: eventIds } } });
+    }
+
+    await tx.chatMessage.deleteMany({ where: { userId: id } });
+    await tx.discussion.deleteMany({ where: { userId: id } });
+    await tx.review.deleteMany({
+      where: { OR: [{ reviewerId: id }, { hostId: id }] },
+    });
+    await tx.follower.deleteMany({
+      where: { OR: [{ followerId: id }, { hostId: id }] },
+    });
     await tx.profile.deleteMany({ where: { userId: id } });
     await tx.participant.deleteMany({ where: { userId: id } });
     await tx.notification.deleteMany({ where: { userId: id } });
@@ -54,6 +79,7 @@ const deleteUser = async (id: string) => {
     await tx.waitlist.deleteMany({ where: { userId: id } });
     await tx.user.delete({ where: { id } });
   });
+
   return { message: "User deleted successfully." };
 };
 
