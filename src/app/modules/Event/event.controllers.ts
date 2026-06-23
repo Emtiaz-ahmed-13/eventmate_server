@@ -304,6 +304,18 @@ const getEventInvites = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getTrendingEvents = catchAsync(async (req: Request, res: Response) => {
+  const limit = Math.min(Number(req.query.limit) || 10, 20);
+  const result = await EventServices.getTrendingEvents(limit);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Trending events fetched successfully.",
+    data: result,
+  });
+});
+
 export const EventControllers = {
   createEvent,
   getAllEvents,
@@ -327,4 +339,5 @@ export const EventControllers = {
   downloadTicket,
   inviteFriend,
   getEventInvites,
+  getTrendingEvents,
 };

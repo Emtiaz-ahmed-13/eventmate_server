@@ -7,6 +7,7 @@ import { EventControllers } from "./event.controllers";
 const router = express.Router();
 
 router.get("/", EventControllers.getAllEvents);
+router.get("/trending", EventControllers.getTrendingEvents);
 router.get(
   "/saved",
   auth(Role.USER, Role.HOST, Role.ADMIN),

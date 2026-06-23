@@ -11,6 +11,10 @@ import { generateTicketPDF } from "../../../utils/pdf.utils";
 import ApiError from "../../errors/ApiError";
 import prisma from "../../shared/prisma";
 import { NotificationServices } from "../Notification/notification.services";
+import {
+  getTrendingEvents as fetchTrendingEvents,
+  getTrendingCacheMeta,
+} from "../../../utils/trendingCache";
 
 const hostSelect = {
   id: true,
@@ -816,6 +820,20 @@ const getEventInvites = async (hostId: string, eventId: string) => {
   });
 };
 
+const getTrendingEvents = async (limit = 10) => {
+  const result = await fetchTrendingEvents(limit);
+  return {
+    events: result.events,
+    meta: {
+      ...getTrendingCacheMeta(),
+      limit,
+      total: result.events.length,
+      computedAt: result.computedAt,
+      windowHours: result.windowHours,
+    },
+  };
+};
+
 export const EventServices = {
   createEvent,
   getAllEvents,
@@ -839,4 +857,5 @@ export const EventServices = {
   downloadTicket,
   inviteFriendByEmail,
   getEventInvites,
+  getTrendingEvents,
 };

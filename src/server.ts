@@ -2,6 +2,7 @@ import { Server } from "http";
 import app from "./app.js"; 
 import config from "./config/index.js";
 import { NotificationServices } from "./app/modules/Notification/notification.services.js";
+import { startTrendingCron } from "./utils/trendingCron.js";
 
 let server: Server | null = null;
 
@@ -14,8 +15,7 @@ async function main() {
     });
 
     NotificationServices.initSocket(server);
-
-    
+    startTrendingCron();
   }
 }
 
