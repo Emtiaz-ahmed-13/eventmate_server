@@ -1,7 +1,67 @@
-import { PrismaClient } from "../generated/prisma/client";
+import "dotenv/config";
+import { Prisma, PrismaClient } from "../generated/prisma/client";
 import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
+
+async function safeDeleteMany(action: () => Promise<unknown>) {
+  try {
+    await action();
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2021"
+    ) {
+      return;
+    }
+    throw error;
+  }
+}
+
+async function removeDuplicateEvents() {
+  const events = await prisma.event.findMany({
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true },
+  });
+
+  const seen = new Set<string>();
+  const duplicateIds: string[] = [];
+
+  for (const event of events) {
+    const key = event.name.trim().toLowerCase();
+    if (seen.has(key)) {
+      duplicateIds.push(event.id);
+    } else {
+      seen.add(key);
+    }
+  }
+
+  if (duplicateIds.length === 0) {
+    return;
+  }
+
+  await safeDeleteMany(() =>
+    prisma.chatMessage.deleteMany({ where: { eventId: { in: duplicateIds } } })
+  );
+  await safeDeleteMany(() =>
+    prisma.discussion.deleteMany({ where: { eventId: { in: duplicateIds } } })
+  );
+  await safeDeleteMany(() =>
+    prisma.waitlist.deleteMany({ where: { eventId: { in: duplicateIds } } })
+  );
+  await safeDeleteMany(() =>
+    prisma.savedEvent.deleteMany({ where: { eventId: { in: duplicateIds } } })
+  );
+  await safeDeleteMany(() =>
+    prisma.participant.deleteMany({ where: { eventId: { in: duplicateIds } } })
+  );
+  await safeDeleteMany(() =>
+    prisma.review.deleteMany({ where: { eventId: { in: duplicateIds } } })
+  );
+  await prisma.event.deleteMany({ where: { id: { in: duplicateIds } } });
+
+  console.log(`Removed ${duplicateIds.length} duplicate event(s).`);
+}
 
 async function main() {
   const email = "admin@eventmate.com";
@@ -26,12 +86,13 @@ async function main() {
 
   const adminId = adminUser!.id;
 
-  console.log("Admin created successfully:");
+  console.log("Admin credentials:");
   console.log("  Email   :", adminUser!.email);
   console.log("  Password: Admin@1234");
   console.log("  Role    :", adminUser!.role);
 
-  // Create Demo Events
+  await removeDuplicateEvents();
+
   const events = [
     {
       name: "Tech Summit 2026",
@@ -62,10 +123,20 @@ async function main() {
   ];
 
   for (const eventData of events) {
+    const existingEvent = await prisma.event.findFirst({
+      where: { name: eventData.name },
+    });
+
+    if (existingEvent) {
+      console.log(`Event "${eventData.name}" already exists, skipping.`);
+      continue;
+    }
+
     await prisma.event.create({ data: eventData });
+    console.log(`Event "${eventData.name}" created.`);
   }
 
-  console.log("Demo Events created successfully!");
+  console.log("Seed completed successfully!");
 }
 
 main()
