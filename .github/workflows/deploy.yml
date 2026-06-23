@@ -10,6 +10,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/eventmate_ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/eventmate_ci
+      JWT_SECRET: ci-test-jwt-secret-key-32chars
+      JWT_EXPIRES_IN: 1d
+      JWT_REFRESH_TOKEN_SECRET: ci-test-refresh-secret-key-32
+      JWT_REFRESH_TOKEN_EXPIRES_IN: 30d
+      JWT_RESET_PASS_TOKEN: ci-test-reset-secret-key-32chars
+      JWT_RESET_PASS_TOKEN_EXPIRES_IN: 10m
+      STRIPE_SECRET_KEY: sk_test_ci_placeholder
+      STRIPE_PUBLISHABLE_KEY: pk_test_ci_placeholder
+      IMAGEKIT_PUBLIC_KEY: public_ci_placeholder
+      IMAGEKIT_PRIVATE_KEY: private_ci_placeholder
+      IMAGEKIT_URL_ENDPOINT: https://ik.imagekit.io/ci
+      EMAIL_HOST: smtp.example.com
+      EMAIL_PORT: "587"
+      EMAIL_USER: ci@example.com
+      EMAIL_PASS: ci-placeholder
+      FRONTEND_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
 
